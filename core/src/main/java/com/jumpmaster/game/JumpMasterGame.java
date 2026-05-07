@@ -9,7 +9,7 @@ import com.jumpmaster.game.controller.GameScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class JumpMasterGame extends Game {
-    private SpriteBatch batch;
+    public SpriteBatch batch;
 
     @Override
     public void create() {
