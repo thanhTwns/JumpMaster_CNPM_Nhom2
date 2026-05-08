@@ -9,6 +9,7 @@ dependencies {
   api "com.crashinvaders.lml:gdx-kiwi:$lmlVersion"
   api "com.crashinvaders.lml:gdx-lml:$lmlVersion"
   api "com.github.kotcrab.vis-ui:vis-ui:$visUiVersion"
+  api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"

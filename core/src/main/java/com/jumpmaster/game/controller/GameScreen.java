@@ -1,5 +1,6 @@
 package com.jumpmaster.game.controller;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
@@ -46,6 +47,17 @@ public class GameScreen implements Screen {
 
     public GameScreen(JumpMasterGame game) {
         this.game = game;
+<<<<<<< feature/main-ui
+    }
+
+    public GameScreen(Game game, String classic) {
+
+    }
+
+    @Override
+    public void show() {
+=======
+>>>>>>> master
 
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
