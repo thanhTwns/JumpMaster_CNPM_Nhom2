@@ -1,6 +1,8 @@
 package com.jumpmaster.game.controller;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -16,6 +18,8 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
+import com.jumpmaster.game.ui.GameplayUI;
+import com.jumpmaster.game.ui.PauseOverlay;
 import com.jumpmaster.game.utils.Constants;
 
 public class GameScreen implements Screen {
@@ -44,6 +48,15 @@ public class GameScreen implements Screen {
     private final Player player;
     private final Array<Platform> platforms;
 
+    // smooth camera for background parallax
+    private float smoothCamY;
+
+    // UI & PAUSE SYSTEM
+    private boolean isPaused = false;
+    private final GameplayUI gameplayUI;
+    private final PauseOverlay pauseOverlay;
+    private final InputMultiplexer multiplexer;
+
     public GameScreen(JumpMasterGame game) {
         this.game = game;
 
@@ -71,9 +84,9 @@ public class GameScreen implements Screen {
         // 1.0 = scroll cùng tốc độ với world (foreground)
         bgScrollSpeeds = new float[]{ 0.0f, 0.05f, 0.08f, 0.15f, 0.2f, 0.35f };
 
-        // Bật texture repeat để tile ngang
+        // Bật texture repeat để tile ngang và dọc
         for (Texture t : bgLayers) {
-            t.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.ClampToEdge);
+            t.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         }
 
         // TẠO PLATFORMS
@@ -128,13 +141,61 @@ public class GameScreen implements Screen {
             currentY += MathUtils.random(120f, 160f);
         }
 
-        player = new Player(world, 100, 300);
+        // Đặt player sát đất (y = 80px thay vì 300px)
+        player = new Player(world, 100, 80);
+
+        // Khởi tạo camera tại vị trí đáy map để nền ngang khớp với đáy màn hình
+        camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+        camera.update();
+        smoothCamY = camera.position.y;
 
         leftWall  = new Platform(world, -10f,50000, 20, 100000, null);
         rightWall = new Platform(world, Constants.VIEWPORT_WIDTH + 10f, 50000, 20, 100000, null);
 
-        inputHandler = new InputHandler(player);
-        Gdx.input.setInputProcessor(inputHandler);
+        // Input Handling
+        inputHandler = new InputHandler(player) {
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.BACK) {
+                    isPaused = !isPaused;
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+                if (isPaused) return false;
+                return super.touchDown(screenX, screenY, pointer, button);
+            }
+        };
+
+        // UI & Pause Logic
+        gameplayUI = new GameplayUI(game.batch, new GameplayUI.GameplayListener() {
+            @Override
+            public void onPause() {
+                isPaused = true;
+            }
+        });
+
+        pauseOverlay = new PauseOverlay(game.batch, new PauseOverlay.PauseListener() {
+            @Override
+            public void onResume() {
+                isPaused = false;
+            }
+
+            @Override
+            public void onQuit() {
+                Gdx.app.exit();
+            }
+        });
+
+        // Multiplexer để nhận cả input từ UI và Game
+        multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(gameplayUI.stage);
+        multiplexer.addProcessor(pauseOverlay.stage);
+        multiplexer.addProcessor(inputHandler);
+        Gdx.input.setInputProcessor(multiplexer);
 
         shapeRenderer = new ShapeRenderer();
     }
@@ -144,10 +205,18 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        world.step(1 / 60f, 6, 2);
+        if (!isPaused) {
+            world.step(1 / 60f, 6, 2);
 
-        float playerY = player.body.getPosition().y;
-        camera.position.y += (playerY - camera.position.y) * 0.1f;
+            float playerY = player.body.getPosition().y;
+            // Giữ camera không xuống thấp hơn đáy màn hình (y=0)
+            float targetCamY = Math.max(playerY, (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f);
+            camera.position.y += (targetCamY - camera.position.y) * 0.1f;
+
+            // Background smooth scroll follow
+            smoothCamY += (camera.position.y - smoothCamY) * 0.02f;
+        }
+
         viewport.apply();
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
@@ -168,8 +237,8 @@ public class GameScreen implements Screen {
         // 3. Debug Box2D (bỏ dòng này khi làm xong)
 //        debugRenderer.render(world, camera.combined);
 
-        // 4. Vẽ đường kéo cung
-        if (inputHandler.isDragging) {
+        // 4. Vẽ đường kéo cung (chỉ khi không pause)
+        if (!isPaused && inputHandler.isDragging) {
             shapeRenderer.setProjectionMatrix(camera.combined);
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(Color.RED);
@@ -179,6 +248,13 @@ public class GameScreen implements Screen {
             float endY = pY + (inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.line(pX, pY, endX, endY);
             shapeRenderer.end();
+        }
+
+        // 5. Vẽ giao diện UI
+        if (isPaused) {
+            pauseOverlay.render();
+        } else {
+            gameplayUI.render();
         }
     }
 
@@ -205,22 +281,24 @@ public class GameScreen implements Screen {
         for (int i = 0; i < bgLayers.length; i++) {
             Texture tex = bgLayers[i];
 
-            // Offset Y theo parallax speed
-            float offsetY = camera.position.y * bgScrollSpeeds[i];
-
-            float layerY = camBottom + offsetY;
+            // Offset Y theo parallax speed, dùng smoothCamY để không bị "nhảy" theo nhân vật
+            // Tính toán offset dựa trên vị trí camera ban đầu để background bắt đầu từ đáy
+            float startY = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+            float offsetY = (smoothCamY - startY) * bgScrollSpeeds[i];
 
             int texW = tex.getWidth();  // 320
             int texH = tex.getHeight(); // 240
 
-            float scaleX = texW / (bgH * (320f / 240f));
-            int srcWidth = (int)(vpW * scaleX * (1.0f));
-            // Cách đơn giản hơn:
-            // bgW_meters = bgH * (320/240) — nhưng ta muốn fill vpW nên tile
-            // Dùng draw với repeat wrap: chỉ cần set srcWidth > texW
+            // Tính toán srcWidth và srcHeight để tile cả chiều ngang và dọc
+            int srcWidth  = (int)(vpW / bgH * texW);
+            int srcHeight = (int)(vpH / bgH * texH);
 
-            // Vẽ 1 dải ngang phủ đầy viewport, tile tự động nhờ Repeat wrap
-            game.batch.draw(tex, camLeft, layerY, vpW, bgH, 0, 0, (int)(vpW / bgH * texW), texH, false, false);
+            // Dịch chuyển texture source theo offsetY để tạo hiệu ứng cuộn lên từ từ
+            int srcY = (int)(offsetY * (texH / bgH));
+
+            // Vẽ phủ kín toàn bộ viewport, tile tự động nhờ Repeat wrap
+            // Dùng -srcY để background di chuyển xuống tương đối khi camera đi lên
+            game.batch.draw(tex, camLeft, camBottom, vpW, vpH, 0, -srcY, srcWidth, srcHeight, false, false);
         }
 
         game.batch.end();
@@ -229,10 +307,14 @@ public class GameScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+        gameplayUI.resize(width, height);
+        pauseOverlay.resize(width, height);
     }
 
     @Override
-    public void pause() {}
+    public void pause() {
+        isPaused = true;
+    }
 
     @Override
     public void resume() {}
@@ -245,6 +327,10 @@ public class GameScreen implements Screen {
         world.dispose();
 //        debugRenderer.dispose();
         shapeRenderer.dispose();
+        gameplayUI.dispose();
+        pauseOverlay.dispose();
         for (Texture t : bgLayers) t.dispose();
+        groundTexture.dispose();
+        stepTexture.dispose();
     }
 }
