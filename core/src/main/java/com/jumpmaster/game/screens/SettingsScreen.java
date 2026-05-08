@@ -4,12 +4,13 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.jumpmaster.game.JumpMasterGame;
 
 public class SettingsScreen implements Screen {
 
-    private final Game game;
+    private final JumpMasterGame game;
 
-    public SettingsScreen(Game game) {
+    public SettingsScreen(JumpMasterGame game) {
         this.game = game;
     }
 

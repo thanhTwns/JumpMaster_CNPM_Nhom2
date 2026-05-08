@@ -13,11 +13,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.controller.GameScreen;
 
 public class MainScreen implements Screen {
 
-    private final Game game;
+    private final JumpMasterGame game;
     private SpriteBatch batch;
     private ShapeRenderer sr;
     private GlyphLayout layout;
@@ -58,7 +59,7 @@ public class MainScreen implements Screen {
     // Nút bấm
     private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores;
 
-    public MainScreen(Game game) {
+    public MainScreen(JumpMasterGame game) {
         this.game = game;
     }
 

@@ -1,29 +1,29 @@
 package com.jumpmaster.game;
 
 import com.badlogic.gdx.Game;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.jumpmaster.game.screens.MainScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class JumpMasterGame extends Game {
-<<<<<<< feature/main-ui
+
 //    private SpriteBatch batch;
-=======
     public SpriteBatch batch;
->>>>>>> master
+
 
     @Override
     public void create() {
-//        batch = new SpriteBatch();
+        batch = new SpriteBatch();
         setScreen(new MainScreen(this));
     }
 
-//    @Override
-//    public void render() {
-//        super.render();
-//    }
-//
-//    @Override
-//    public void dispose() {
-//        batch.dispose();
-//    }
+    @Override
+    public void render() {
+        super.render();
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+    }
 }
