@@ -13,17 +13,17 @@ public class JumpMasterGame extends Game {
 
     @Override
     public void create() {
-//        batch = new SpriteBatch();
+        batch = new SpriteBatch();
         setScreen(new MainScreen(this));
     }
 
-//    @Override
-//    public void render() {
-//        super.render();
-//    }
-//
-//    @Override
-//    public void dispose() {
-//        batch.dispose();
-//    }
+    @Override
+    public void render() {
+        super.render();
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+    }
 }

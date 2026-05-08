@@ -25,7 +25,7 @@ import com.jumpmaster.game.utils.Constants;
 
 public class GameScreen implements Screen {
     private JumpMasterGame game;
-
+    private String mode;
     //PLATFORM
     private Texture groundTexture;
     private Texture stepTexture;
@@ -59,11 +59,12 @@ public class GameScreen implements Screen {
     private InputMultiplexer multiplexer;
 
     public GameScreen(JumpMasterGame game) {
-        this.game = game;
+        this(game, "classic");
     }
 
-    public GameScreen(Game game, String classic) {
-
+    public GameScreen(JumpMasterGame game, String mode) {
+        this.game = game;
+        this.mode = mode;
     }
 
     @Override
