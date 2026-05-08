@@ -2,8 +2,8 @@ package com.jumpmaster.game.utils;
 
 public class Constants {
 
-    public static final float VIEWPORT_WIDTH = 800f;
-    public static final float VIEWPORT_HEIGHT = 480f;
+    public static final float VIEWPORT_WIDTH = 720f;
+    public static final float VIEWPORT_HEIGHT = 405f;
 
     //100 pixel = 1m
     public static final float PPM = 100f;
