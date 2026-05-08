@@ -24,7 +24,7 @@ import com.jumpmaster.game.ui.PauseOverlay;
 import com.jumpmaster.game.utils.Constants;
 
 public class GameScreen implements Screen {
-    private final JumpMasterGame game;
+    private JumpMasterGame game;
 
     //PLATFORM
     private Texture groundTexture;
@@ -34,33 +34,32 @@ public class GameScreen implements Screen {
 
     // PARALLAX BACKGROUND
     // Thứ tự: xa nhất → gần nhất
-    private final Texture[] bgLayers;
-    private final float[] bgScrollSpeeds; // 0.0 = không scroll, 1.0 = scroll cùng tốc độ camera
+    private Texture[] bgLayers;
+    private float[] bgScrollSpeeds; // 0.0 = không scroll, 1.0 = scroll cùng tốc độ camera
 
     // QUAN TRONG
-    private final OrthographicCamera camera;
-    private final World world;
+    private OrthographicCamera camera;
+    private World world;
 //    private final Box2DDebugRenderer debugRenderer;
-    private final ShapeRenderer shapeRenderer;
-    private final InputHandler inputHandler;
-    private final ExtendViewport viewport;
+    private ShapeRenderer shapeRenderer;
+    private InputHandler inputHandler;
+    private ExtendViewport viewport;
 
     // Entity
-    private final Player player;
-    private final Array<Platform> platforms;
+    private Player player;
+    private Array<Platform> platforms;
 
     // smooth camera for background parallax
     private float smoothCamY;
 
     // UI & PAUSE SYSTEM
     private boolean isPaused = false;
-    private final GameplayUI gameplayUI;
-    private final PauseOverlay pauseOverlay;
-    private final InputMultiplexer multiplexer;
+    private GameplayUI gameplayUI;
+    private PauseOverlay pauseOverlay;
+    private InputMultiplexer multiplexer;
 
     public GameScreen(JumpMasterGame game) {
         this.game = game;
-<<<<<<< feature/main-ui
     }
 
     public GameScreen(Game game, String classic) {
@@ -69,9 +68,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
-=======
->>>>>>> master
-
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
             Constants.VIEWPORT_WIDTH / Constants.PPM,
@@ -212,8 +208,8 @@ public class GameScreen implements Screen {
         shapeRenderer = new ShapeRenderer();
     }
 
-    @Override
-    public void show() {}
+//    @Override
+//    public void show() {}
 
     @Override
     public void render(float delta) {
