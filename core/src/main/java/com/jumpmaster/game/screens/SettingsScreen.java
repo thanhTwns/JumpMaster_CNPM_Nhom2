@@ -3,7 +3,6 @@ package com.jumpmaster.game.screens;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 public class SettingsScreen implements Screen {
@@ -23,7 +22,7 @@ public class SettingsScreen implements Screen {
 
         // Bấm bất kỳ đâu → về menu
         if (Gdx.input.justTouched()) {
-            game.setScreen(new MenuScreen(game));
+            game.setScreen(new MainScreen(game));
         }
     }
 
