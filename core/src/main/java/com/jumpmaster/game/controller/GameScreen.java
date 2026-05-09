@@ -19,11 +19,21 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
+import com.jumpmaster.game.screens.MainScreen;
+import com.jumpmaster.game.screens.SettingsScreen;
+import com.jumpmaster.game.ui.GameOverOverlay;
 import com.jumpmaster.game.ui.GameplayUI;
 import com.jumpmaster.game.ui.PauseOverlay;
 import com.jumpmaster.game.utils.Constants;
+import com.jumpmaster.game.utils.ScoreManager;
 
 public class GameScreen implements Screen {
+    private enum State {RUNNING, PAUSED, GAME_OVER}
+    private float highestY = 0;
+    private State currentState = State.RUNNING;
+    private ScoreManager scoreManager;
+    private GameOverOverlay gameOverOverlay;
+    private float idleTimer = 0f;
     private JumpMasterGame game;
     private String mode;
     //PLATFORM
@@ -40,7 +50,7 @@ public class GameScreen implements Screen {
     // QUAN TRONG
     private OrthographicCamera camera;
     private World world;
-//    private final Box2DDebugRenderer debugRenderer;
+    //    private final Box2DDebugRenderer debugRenderer;
     private ShapeRenderer shapeRenderer;
     private InputHandler inputHandler;
     private ExtendViewport viewport;
@@ -57,6 +67,7 @@ public class GameScreen implements Screen {
     private GameplayUI gameplayUI;
     private PauseOverlay pauseOverlay;
     private InputMultiplexer multiplexer;
+
 
     public GameScreen(JumpMasterGame game) {
         this(game, "classic");
@@ -91,7 +102,7 @@ public class GameScreen implements Screen {
         // Tốc độ scroll theo chiều Y (so với camera)
         // 0.0 = đứng yên hoàn toàn (sky)
         // 1.0 = scroll cùng tốc độ với world (foreground)
-        bgScrollSpeeds = new float[]{ 0.0f, 0.05f, 0.08f, 0.15f, 0.2f, 0.35f };
+        bgScrollSpeeds = new float[]{0.0f, 0.05f, 0.08f, 0.15f, 0.2f, 0.35f};
 
         // Bật texture repeat để tile ngang và dọc
         for (Texture t : bgLayers) {
@@ -100,7 +111,7 @@ public class GameScreen implements Screen {
 
         // TẠO PLATFORMS
         groundTexture = new Texture("ground.png");
-        stepTexture   = new Texture("platform_step.png");
+        stepTexture = new Texture("platform_step.png");
 
         groundTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
         stepTexture.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
@@ -118,7 +129,7 @@ public class GameScreen implements Screen {
         ));
 
         float stepHeight = 16f;
-        float currentY   = 150f;
+        float currentY = 150f;
         boolean leftSide = true;
 
         for (int i = 0; i < 50; i++) {
@@ -158,7 +169,7 @@ public class GameScreen implements Screen {
         camera.update();
         smoothCamY = camera.position.y;
 
-        leftWall  = new Platform(world, -10f,50000, 20, 100000, null);
+        leftWall = new Platform(world, -10f, 50000, 20, 100000, null);
         rightWall = new Platform(world, Constants.VIEWPORT_WIDTH + 10f, 50000, 20, 100000, null);
 
         // Input Handling
@@ -198,15 +209,23 @@ public class GameScreen implements Screen {
                 Gdx.app.exit();
             }
         });
-
+        // Khởi tạo logic và giao diện Game Over
+        scoreManager = new ScoreManager();
+        gameOverOverlay = new GameOverOverlay(game.batch, new GameOverOverlay.GameOverListener() {
+            @Override public void onRestart() { restartGame(); }
+            @Override public void onMenu() { goToMenu(); }
+        });
         // Multiplexer để nhận cả input từ UI và Game
         multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(gameOverOverlay.stage);
         multiplexer.addProcessor(gameplayUI.stage);
         multiplexer.addProcessor(pauseOverlay.stage);
         multiplexer.addProcessor(inputHandler);
         Gdx.input.setInputProcessor(multiplexer);
 
         shapeRenderer = new ShapeRenderer();
+
+
     }
 
 //    @Override
@@ -214,8 +233,25 @@ public class GameScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        if (!isPaused) {
+        updateGameOverLogic(delta);
+
+
+        if (!isPaused && currentState != State.GAME_OVER) {
             world.step(1 / 60f, 6, 2);
+
+            float py = player.body.getPosition().y;
+
+            // 1. Cập nhật độ cao cao nhất mà người chơi đạt được
+            if (py > highestY) {
+                highestY = py;
+            }
+
+            // 2. LOGIC GAME OVER:
+            // Nếu người chơi rơi thấp hơn mốc cao nhất quá 3 mét (khoảng 2-3 cái platform)
+            // VÀ đang ở gần sát mặt đất (py < 1.5f chẳng hạn)
+            if (highestY > 2.0f && py < 1.2f) {
+                triggerGameOver();
+            }
 
             float playerY = player.body.getPosition().y;
             // Giữ camera không xuống thấp hơn đáy màn hình (y=0)
@@ -260,28 +296,31 @@ public class GameScreen implements Screen {
         }
 
         // 5. Vẽ giao diện UI
-        if (isPaused) {
+        if (currentState == State.GAME_OVER) {
+            gameOverOverlay.render();
+        } else if (isPaused) {
             pauseOverlay.render();
         } else {
             gameplayUI.render();
         }
+
     }
 
     /**
      * Vẽ parallax background gồm 6 layer.
-     *
+     * <p>
      * Mỗi layer là ảnh pixel art 320x240 (tỉ lệ 4:3).
      * Ta tile ngang để phủ đầy viewport 16:9,
      * và dịch chuyển theo Y với tốc độ khác nhau tạo hiệu ứng parallax.
      */
     private void drawParallaxBackground() {
-        float vpW = Constants.VIEWPORT_WIDTH  / Constants.PPM; // chiều rộng viewport (meters)
+        float vpW = Constants.VIEWPORT_WIDTH / Constants.PPM; // chiều rộng viewport (meters)
         float vpH = Constants.VIEWPORT_HEIGHT / Constants.PPM; // chiều cao viewport (meters)
 
         float bgH = vpW * (240f / 320f);
 
         // Góc trái dưới camera
-        float camLeft   = camera.position.x - vpW / 2f;
+        float camLeft = camera.position.x - vpW / 2f;
         float camBottom = camera.position.y - vpH / 2f;
 
         game.batch.setProjectionMatrix(camera.combined);
@@ -299,11 +338,11 @@ public class GameScreen implements Screen {
             int texH = tex.getHeight(); // 240
 
             // Tính toán srcWidth và srcHeight để tile cả chiều ngang và dọc
-            int srcWidth  = (int)(vpW / bgH * texW);
-            int srcHeight = (int)(vpH / bgH * texH);
+            int srcWidth = (int) (vpW / bgH * texW);
+            int srcHeight = (int) (vpH / bgH * texH);
 
             // Dịch chuyển texture source theo offsetY để tạo hiệu ứng cuộn lên từ từ
-            int srcY = (int)(offsetY * (texH / bgH));
+            int srcY = (int) (offsetY * (texH / bgH));
 
             // Vẽ phủ kín toàn bộ viewport, tile tự động nhờ Repeat wrap
             // Dùng -srcY để background di chuyển xuống tương đối khi camera đi lên
@@ -318,6 +357,10 @@ public class GameScreen implements Screen {
         viewport.update(width, height, true);
         gameplayUI.resize(width, height);
         pauseOverlay.resize(width, height);
+
+        if (gameOverOverlay != null) {
+            gameOverOverlay.resize(width, height);
+        }
     }
 
     @Override
@@ -326,13 +369,17 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+    }
 
     @Override
     public void dispose() {
+        if (gameOverOverlay != null) gameOverOverlay.dispose();
+
         world.dispose();
 //        debugRenderer.dispose();
         shapeRenderer.dispose();
@@ -341,5 +388,77 @@ public class GameScreen implements Screen {
         for (Texture t : bgLayers) t.dispose();
         groundTexture.dispose();
         stepTexture.dispose();
+    }
+
+    public void checkGameOver() {
+        if (player.body.getPosition().y < 0) { // Nhân vật rơi xuống vực
+            triggerGameOver();
+        }
+    }
+
+    private void triggerGameOver() {
+        currentState = State.GAME_OVER;
+        idleTimer = 0;
+        player.body.setLinearVelocity(0, 0); // Basic Flow - Bước 2
+
+        int score = (int) (player.body.getPosition().y * 10); // Ví dụ cách tính điểm
+        saveScore(score); // UC-3.3
+
+        boolean isNew = score > scoreManager.getHighScore();
+        scoreManager.saveHighScore(score); // Cập nhật record
+
+        gameOverOverlay.setData(score, scoreManager.getHighScore(), isNew);
+    }
+
+    private void saveScore(int score) {
+        // Để trống theo yêu cầu: Logic lưu tạm hoặc xử lý tín hiệu khác
+    }
+
+    private void restartGame() {
+        Gdx.app.postRunnable(() -> {
+            // 1. Trả trạng thái về Running để hiện gameplayUI
+            currentState = State.RUNNING;
+            isPaused = false;
+            idleTimer = 0;
+
+            // 2. Đưa Player về vị trí cũ (Chia cho PPM)
+            player.body.setLinearVelocity(0, 0);
+            player.body.setAngularVelocity(0);
+            player.body.setTransform(new Vector2(100f / Constants.PPM, 80f / Constants.PPM), 0);
+
+            // 3. Reset Camera để không bị lệch
+            camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+            smoothCamY = camera.position.y;
+            camera.update();
+
+            // 4. CHỐT HẠ: Ép cái InputProcessor về lại ban đầu
+            Gdx.input.setInputProcessor(multiplexer);
+
+            System.out.println("Reset xong, khong bao gio vang!");
+        });
+        highestY = player.body.getPosition().y; // Reset mốc cao nhất
+    }
+
+    private void goToMenu() {
+        Gdx.app.postRunnable(() -> {
+            // Không cần dispose() ở đây vì MainScreen đã tự quản lý asset của nó
+            game.setScreen(new MainScreen(game));
+        });
+    }
+
+    //
+    private void updateGameOverLogic(float delta) {
+        if (currentState == State.RUNNING) {
+            if (player.body.getPosition().y < 0) triggerGameOver();
+        } else if (currentState == State.GAME_OVER) {
+            idleTimer += delta;
+            if (idleTimer >= 30f) goToMenu();
+        }
+    }
+
+    private void drawGameOverUI() {
+        if (currentState == State.GAME_OVER) {
+            gameOverOverlay.render();
+        }
     }
 }
