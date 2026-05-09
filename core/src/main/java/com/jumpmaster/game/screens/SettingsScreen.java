@@ -157,6 +157,13 @@ public class SettingsScreen implements Screen {
         textButtonStyle.downFontColor = Color.GRAY;
         skin.add("default", textButtonStyle);
 
+        TextButton.TextButtonStyle smallBtnStyle = new TextButton.TextButtonStyle();
+        smallBtnStyle.font = fontSmall;
+        smallBtnStyle.fontColor = Color.WHITE;
+        smallBtnStyle.overFontColor = RED;
+        smallBtnStyle.downFontColor = Color.GRAY;
+        skin.add("small", smallBtnStyle);
+
         pixmap.dispose();
     }
 
@@ -228,8 +235,8 @@ public class SettingsScreen implements Screen {
         final Label modeLabel = new Label(modes[settings.displayMode], skin, "small");
         modeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
 
-        TextButton leftArrow = new TextButton("<", skin);
-        TextButton rightArrow = new TextButton(">", skin);
+        TextButton leftArrow = new TextButton("<", skin, "small");
+        TextButton rightArrow = new TextButton(">", skin, "small");
 
         leftArrow.addListener(new ClickListener() {
             @Override

@@ -17,7 +17,7 @@ public class JumpMasterGame extends Game {
     public void create() {
         batch = new SpriteBatch();
         AudioManager.getInstance().init();
-        AudioManager.getInstance().playMusic();
+        AudioManager.getInstance().playMenuMusic();
         setScreen(new MainScreen(this));
     }
 

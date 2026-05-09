@@ -8,6 +8,7 @@ public class AudioManager {
     private static AudioManager instance;
 
     private Music backgroundMusic;
+    private Music menuMusic;
     private Sound pullSound;
     private Sound launchSound;
     private long pullSoundId = -1;
@@ -28,8 +29,14 @@ public class AudioManager {
             if (Gdx.files.internal("sfx/bg.ogg").exists()) {
                 backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sfx/bg.ogg"));
                 backgroundMusic.setLooping(true);
-                updateMusicVolume();
             }
+
+            if (Gdx.files.internal("sfx/menu.ogg").exists()) {
+                menuMusic = Gdx.audio.newMusic(Gdx.files.internal("sfx/menu.ogg"));
+                menuMusic.setLooping(true);
+            }
+
+            updateMusicVolume();
 
             if (Gdx.files.internal("sfx/sfx-001.ogg").exists()) {
                 pullSound = Gdx.audio.newSound(Gdx.files.internal("sfx/sfx-001.ogg"));
@@ -43,22 +50,28 @@ public class AudioManager {
         }
     }
 
-    public void playMusic() {
+    public void playGameMusic() {
+        if (menuMusic != null)
+            menuMusic.stop();
         if (backgroundMusic != null && !backgroundMusic.isPlaying()) {
             backgroundMusic.play();
         }
     }
 
-    public void stopMusic() {
-        if (backgroundMusic != null) {
+    public void playMenuMusic() {
+        if (backgroundMusic != null)
             backgroundMusic.stop();
+        if (menuMusic != null && !menuMusic.isPlaying()) {
+            menuMusic.play();
         }
     }
 
     public void updateMusicVolume() {
-        if (backgroundMusic != null) {
-            backgroundMusic.setVolume(GameSettings.getInstance().musicVolume);
-        }
+        float vol = GameSettings.getInstance().musicVolume;
+        if (backgroundMusic != null)
+            backgroundMusic.setVolume(vol);
+        if (menuMusic != null)
+            menuMusic.setVolume(vol);
     }
 
     public void playPullSound() {
@@ -85,6 +98,8 @@ public class AudioManager {
     public void dispose() {
         if (backgroundMusic != null)
             backgroundMusic.dispose();
+        if (menuMusic != null)
+            menuMusic.dispose();
         if (pullSound != null)
             pullSound.dispose();
         if (launchSound != null)

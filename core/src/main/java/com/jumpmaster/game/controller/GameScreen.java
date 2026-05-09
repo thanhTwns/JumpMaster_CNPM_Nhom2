@@ -16,6 +16,7 @@ import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.GameSettings;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
@@ -83,6 +84,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+        AudioManager.getInstance().playGameMusic();
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
                 Constants.VIEWPORT_WIDTH / Constants.PPM,
@@ -479,6 +481,7 @@ public class GameScreen implements Screen {
 
     private void goToMenu() {
         Gdx.app.postRunnable(() -> {
+            AudioManager.getInstance().playMenuMusic();
             // Không cần dispose() ở đây vì MainScreen đã tự quản lý asset của nó
             game.setScreen(new MainScreen(game));
         });
