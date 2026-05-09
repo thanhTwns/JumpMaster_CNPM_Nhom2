@@ -4,16 +4,20 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.jumpmaster.game.screens.MainScreen;
 
-/** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
+/**
+ * {@link com.badlogic.gdx.ApplicationListener} implementation shared by all
+ * platforms.
+ */
 public class JumpMasterGame extends Game {
 
-//    private SpriteBatch batch;
+    // private SpriteBatch batch;
     public SpriteBatch batch;
-
 
     @Override
     public void create() {
         batch = new SpriteBatch();
+        AudioManager.getInstance().init();
+        AudioManager.getInstance().playMusic();
         setScreen(new MainScreen(this));
     }
 
@@ -25,5 +29,6 @@ public class JumpMasterGame extends Game {
     @Override
     public void dispose() {
         batch.dispose();
+        AudioManager.getInstance().dispose();
     }
 }

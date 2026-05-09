@@ -3,6 +3,7 @@ package com.jumpmaster.game.controller;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.math.Vector2;
+import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.model.Player;
 
 public class InputHandler extends InputAdapter {
@@ -28,26 +29,30 @@ public class InputHandler extends InputAdapter {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        //dao nguoc Y, ghi lai diem tiep xuc dau tien khi cham vao nhan vat
+        // dao nguoc Y, ghi lai diem tiep xuc dau tien khi cham vao nhan vat
         startPosition = new Vector2(screenX, Gdx.graphics.getHeight() - screenY);
         isDragging = true; // Bắt đầu kéo
         dragVector.set(0, 0);
+        AudioManager.getInstance().playPullSound();// phát âm thanh kéo
         return true;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (!isDragging) return false;
+        if (!isDragging)
+            return false;
         isDragging = false;
         Vector2 endPosition = new Vector2(screenX, Gdx.graphics.getHeight() - screenY);
 
-        //tinh toan luc
+        // tinh toan luc
         Vector2 force = startPosition.cpy().sub(endPosition);
         float maxDragDistance = 150f;
         force.limit(maxDragDistance);
         force.scl(0.005f);
 
         player.jump(force);
+        AudioManager.getInstance().stopPullSound();
+        AudioManager.getInstance().playLaunchSound();// phát âm thanh nhảy
         return true;
     }
 
