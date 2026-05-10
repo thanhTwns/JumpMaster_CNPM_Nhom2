@@ -379,11 +379,7 @@ public abstract class BaseScreen implements Screen {
 
         int finalPoints = (int) (basePoint * comboMultiplier);
         scoreManager.addPoints(finalPoints);
-        } else if (isPaused)
-            pauseOverlay.render();
-        else
-            gameplayUI.render();
-    }
+        }
 
     // -------------------------------------------------------
     // TRIGGER GAME OVER

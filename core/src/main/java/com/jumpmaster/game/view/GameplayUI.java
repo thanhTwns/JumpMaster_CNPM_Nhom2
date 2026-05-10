@@ -20,8 +20,9 @@ public class GameplayUI {
     private Label scoreLabel;
     private Label comboLabel;
     private Label columnLabel;
+    private Label fpsLabel; // Khai báo fpsLabel ở đây
+    private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
-    private Label fpsLabel;
 
     public interface GameplayListener {
         void onPause();
@@ -30,7 +31,8 @@ public class GameplayUI {
     public GameplayUI(SpriteBatch batch, final GameplayListener listener) {
         stage = new Stage(new FitViewport(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT), batch);
 
-        BitmapFont font = new BitmapFont();
+        // Khởi tạo font 1 lần duy nhất
+        font = new BitmapFont();
         font.getData().setScale(1.5f);
 
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
@@ -39,25 +41,23 @@ public class GameplayUI {
         comboLabel = new Label("", labelStyle);
         comboLabel.setColor(Color.YELLOW);
 
+        // Khởi tạo fpsLabel 1 lần duy nhất
+        fpsLabel = new Label("0 FPS", labelStyle);
+        fpsLabel.setVisible(GameSettings.getInstance().showFPS);
+
+        // Bảng chứa điểm và FPS ở góc trái
         Table topTable = new Table();
         topTable.top().left();
         topTable.setFillParent(true);
-        topTable.add(scoreLabel).pad(15).left();
-        topTable.row();
-        topTable.add(columnLabel).pad(15).left();
-        topTable.row();
-        topTable.add(comboLabel).pad(15).left();
+        topTable.add(scoreLabel).pad(15).left().row();
+        topTable.add(columnLabel).pad(15).left().row();
+        topTable.add(comboLabel).pad(15).left().row();
+        topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
 
+        // Bảng chứa nút Pause ở góc phải
         Table actionTable = new Table();
         actionTable.top().right();
         actionTable.setFillParent(true);
-
-        Table table = new Table();
-        table.top();
-        table.setFillParent(true);
-
-        BitmapFont font = new BitmapFont();
-        font.getData().setScale(1.5f);
 
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = font;
@@ -74,35 +74,31 @@ public class GameplayUI {
 
         actionTable.add(pauseButton).pad(15);
 
+        // Chỉ add lên stage 1 lần
         stage.addActor(topTable);
         stage.addActor(actionTable);
     }
 
     public void update(ScoreManager sm) {
         this.scoreManager = sm;
+
+        // Cập nhật text liên tục ở đây
         scoreLabel.setText("Score: " + sm.getCurrentScore());
         columnLabel.setText("Steps: " + sm.getColumnsPassed());
+
         if (sm.getCombo() > 1) {
             comboLabel.setText("COMBO X" + sm.getCombo() + "!");
         } else {
             comboLabel.setText("");
         }
-        Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
-        fpsLabel = new Label("0 FPS", labelStyle);
+
+        // Ẩn/hiện FPS tùy thuộc vào cài đặt
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
-
-        table.add(fpsLabel).left().expandX().pad(15);
-        table.add(pauseButton).right().pad(15);
-
-        stage.addActor(table);
     }
 
     public void render() {
         if (GameSettings.getInstance().showFPS) {
-            fpsLabel.setVisible(true);
             fpsLabel.setText(Gdx.graphics.getFramesPerSecond() + " FPS");
-        } else {
-            fpsLabel.setVisible(false);
         }
 
         stage.act();
@@ -115,5 +111,9 @@ public class GameplayUI {
 
     public void dispose() {
         stage.dispose();
+        // Cần giải phóng bộ nhớ của font để không bị memory leak của LibGDX
+        if (font != null) {
+            font.dispose();
+        }
     }
 }
