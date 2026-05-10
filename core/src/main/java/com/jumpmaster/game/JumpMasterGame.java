@@ -2,7 +2,9 @@ package com.jumpmaster.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.jumpmaster.game.screens.MainScreen;
+import com.jumpmaster.game.view.EarthScreen;
+import com.jumpmaster.game.view.MainScreen;
+import com.jumpmaster.game.view.SpaceScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class JumpMasterGame extends Game {
@@ -14,7 +16,7 @@ public class JumpMasterGame extends Game {
     @Override
     public void create() {
         batch = new SpriteBatch();
-        setScreen(new MainScreen(this));
+        setScreen(new EarthScreen(this, "classic"));
     }
 
     @Override
