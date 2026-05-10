@@ -14,6 +14,7 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ObjectSet;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.controller.InputHandler;
 import com.jumpmaster.game.model.Platform;
@@ -22,7 +23,8 @@ import com.jumpmaster.game.utils.Constants;
 import com.jumpmaster.game.utils.ScoreManager;
 
 /**
- * BaseScreen — abstract class chứa toàn bộ logic CHUNG giữa GameScreen và SpaceScreen:
+ * BaseScreen — abstract class chứa toàn bộ logic CHUNG giữa GameScreen và
+ * SpaceScreen:
  * - Vòng đời Screen (show, render, resize, pause, dispose)
  * - Physics world + camera + viewport
  * - Player, platforms, tường
@@ -32,22 +34,26 @@ import com.jumpmaster.game.utils.ScoreManager;
  * - updateInputProcessors
  * <p>
  * Lớp con chỉ cần implement:
- * - initBackground()  — load texture background riêng
- * - initPlatforms()   — tạo số bậc và layout riêng
- * - drawBackground()  — vẽ background riêng
- * - onLevelComplete() — xử lý khi hoàn thành màn (chuyển màn, hoặc không làm gì)
- * - onExtraUpdate()   — logic thêm mỗi frame (monster, v.v.)
- * - onExtraDraw()     — vẽ thêm mỗi frame (monster, v.v.)
- * - onExtraDispose()  — dispose thêm resource riêng
- * - getSpawnX/Y()     — vị trí spawn player
- * - getLevelClearY()  — Y ngưỡng chuyển màn (trả về Float.MAX_VALUE nếu không có)
+ * - initBackground() — load texture background riêng
+ * - initPlatforms() — tạo số bậc và layout riêng
+ * - drawBackground() — vẽ background riêng
+ * - onLevelComplete() — xử lý khi hoàn thành màn (chuyển màn, hoặc không làm
+ * gì)
+ * - onExtraUpdate() — logic thêm mỗi frame (monster, v.v.)
+ * - onExtraDraw() — vẽ thêm mỗi frame (monster, v.v.)
+ * - onExtraDispose() — dispose thêm resource riêng
+ * - getSpawnX/Y() — vị trí spawn player
+ * - getLevelClearY() — Y ngưỡng chuyển màn (trả về Float.MAX_VALUE nếu không
+ * có)
  */
 public abstract class BaseScreen implements Screen {
 
     // -------------------------------------------------------
     // STATE
     // -------------------------------------------------------
-    protected enum State {RUNNING, GAME_OVER}
+    protected enum State {
+        RUNNING, GAME_OVER
+    }
 
     protected State currentState = State.RUNNING;
 
@@ -160,12 +166,12 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     @Override
     public void show() {
+        AudioManager.getInstance().playGameMusic();
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
-            Constants.VIEWPORT_WIDTH / Constants.PPM,
-            Constants.VIEWPORT_HEIGHT / Constants.PPM,
-            camera
-        );
+                Constants.VIEWPORT_WIDTH / Constants.PPM,
+                Constants.VIEWPORT_HEIGHT / Constants.PPM,
+                camera);
         world = new World(new Vector2(0, Constants.GRAVITY), true);
 
         // Background do lớp con quyết định
@@ -205,13 +211,15 @@ public abstract class BaseScreen implements Screen {
 
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-                if (isPaused || currentState == State.GAME_OVER) return false;
+                if (isPaused || currentState == State.GAME_OVER)
+                    return false;
                 return super.touchDown(screenX, screenY, pointer, button);
             }
 
             @Override
             public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-                if (isPaused || currentState == State.GAME_OVER) return false;
+                if (isPaused || currentState == State.GAME_OVER)
+                    return false;
                 return super.touchUp(screenX, screenY, pointer, button);
             }
         };
@@ -221,7 +229,8 @@ public abstract class BaseScreen implements Screen {
 
         gameplayUI = new GameplayUI(game.batch, () -> {
             isPaused = true;
-            if (inputHandler != null) inputHandler.reset();
+            if (inputHandler != null)
+                inputHandler.reset();
             updateInputProcessors();
         });
 
@@ -268,13 +277,16 @@ public abstract class BaseScreen implements Screen {
             scoreManager.update(delta);
 
             float py = player.body.getPosition().y;
-            if (py > highestY) highestY = py;
+            if (py > highestY)
+                highestY = py;
 
             // Game over khi rơi xuống hố
-            if (py < DEATH_Y) triggerGameOver();
+            if (py < DEATH_Y)
+                triggerGameOver();
 
             // Chuyển màn khi đạt ngưỡng
-            if (py >= getLevelClearY()) onLevelComplete();
+            if (py >= getLevelClearY())
+                onLevelComplete();
 
             // Logic bổ sung của lớp con (monster, v.v.)
             onExtraUpdate(delta);
@@ -295,25 +307,45 @@ public abstract class BaseScreen implements Screen {
         // Platforms + Player
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
-        for (Platform p : platforms) p.draw(game.batch);
+        for (Platform p : platforms)
+            p.draw(game.batch);
         player.draw(game.batch);
         onExtraDraw(); // vẽ bổ sung của lớp con (monster, v.v.)
         game.batch.end();
 
-        // Đường kéo cung
+        // aim & dự đoán đường đi
         if (!isPaused && currentState != State.GAME_OVER && inputHandler.isDragging) {
             shapeRenderer.setProjectionMatrix(camera.combined);
+
+            // aim bar
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(Color.RED);
             float pX = player.body.getPosition().x;
             float pY = player.body.getPosition().y;
             shapeRenderer.line(pX, pY,
-                pX + inputHandler.dragVector.x / Constants.PPM,
-                pY + inputHandler.dragVector.y / Constants.PPM);
+                    pX + inputHandler.dragVector.x / Constants.PPM,
+                    pY + inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.end();
+
+            // vẽ đường dự đoán
+            if (com.jumpmaster.game.GameSettings.getInstance().showTrajectory) {
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+                shapeRenderer.setColor(Color.WHITE);
+                Vector2 startPos = player.body.getPosition();
+                Vector2 velocity = inputHandler.dragVector.cpy().scl(-0.005f);
+
+                float timeStep = 0.1f;
+                for (int i = 0; i < 15; i++) {
+                    float t = i * timeStep;
+                    float x = startPos.x + velocity.x * t;
+                    float y = startPos.y + velocity.y * t + 0.5f * Constants.GRAVITY * t * t;
+                    shapeRenderer.circle(x, y, 0.04f, 8);
+                }
+                shapeRenderer.end();
+            }
         }
 
-        // UI overlay
+        // overlay
         if (currentState == State.GAME_OVER) {
             updateInputProcessors();
             gameOverOverlay.render();
@@ -347,18 +379,24 @@ public abstract class BaseScreen implements Screen {
 
         int finalPoints = (int) (basePoint * comboMultiplier);
         scoreManager.addPoints(finalPoints);
+        } else if (isPaused)
+            pauseOverlay.render();
+        else
+            gameplayUI.render();
     }
 
     // -------------------------------------------------------
     // TRIGGER GAME OVER
     // -------------------------------------------------------
     protected void triggerGameOver() {
-        if (currentState == State.GAME_OVER) return;
+        if (currentState == State.GAME_OVER)
+            return;
         currentState = State.GAME_OVER;
         updateInputProcessors();
         idleTimer = 0;
         player.body.setLinearVelocity(0, 0);
-        if (inputHandler != null) inputHandler.reset();
+        if (inputHandler != null)
+            inputHandler.reset();
 
         scoreManager.flush(); // UC-3.3 AF3: Flush toàn bộ dữ liệu xuống local storage
         gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(),
@@ -380,7 +418,7 @@ public abstract class BaseScreen implements Screen {
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
             player.body.setTransform(
-                new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
+                    new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
 
             camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
             smoothCamY = camera.position.y;
@@ -394,7 +432,10 @@ public abstract class BaseScreen implements Screen {
     // MENU
     // -------------------------------------------------------
     protected void goToMenu() {
-        Gdx.app.postRunnable(() -> game.setScreen(new MainScreen(game)));
+        Gdx.app.postRunnable(() -> {
+            AudioManager.getInstance().playMenuMusic();
+            game.setScreen(new MainScreen(game));
+        });
     }
 
     // -------------------------------------------------------
@@ -402,8 +443,10 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void updateInputProcessors() {
         multiplexer.clear();
-        if (currentState == State.GAME_OVER) multiplexer.addProcessor(gameOverOverlay.stage);
-        else if (isPaused) multiplexer.addProcessor(pauseOverlay.stage);
+        if (currentState == State.GAME_OVER)
+            multiplexer.addProcessor(gameOverOverlay.stage);
+        else if (isPaused)
+            multiplexer.addProcessor(pauseOverlay.stage);
         else {
             multiplexer.addProcessor(gameplayUI.stage);
             multiplexer.addProcessor(inputHandler);
@@ -417,15 +460,19 @@ public abstract class BaseScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
-        if (gameplayUI != null) gameplayUI.resize(width, height);
-        if (pauseOverlay != null) pauseOverlay.resize(width, height);
-        if (gameOverOverlay != null) gameOverOverlay.resize(width, height);
+        if (gameplayUI != null)
+            gameplayUI.resize(width, height);
+        if (pauseOverlay != null)
+            pauseOverlay.resize(width, height);
+        if (gameOverOverlay != null)
+            gameOverOverlay.resize(width, height);
     }
 
     @Override
     public void pause() {
         isPaused = true;
-        if (inputHandler != null) inputHandler.reset();
+        if (inputHandler != null)
+            inputHandler.reset();
         updateInputProcessors();
     }
 
@@ -439,13 +486,20 @@ public abstract class BaseScreen implements Screen {
 
     @Override
     public void dispose() {
-        if (world != null) world.dispose();
-        if (shapeRenderer != null) shapeRenderer.dispose();
-        if (groundTexture != null) groundTexture.dispose();
-        if (stepTexture != null) stepTexture.dispose();
-        if (gameplayUI != null) gameplayUI.dispose();
-        if (pauseOverlay != null) pauseOverlay.dispose();
-        if (gameOverOverlay != null) gameOverOverlay.dispose();
+        if (world != null)
+            world.dispose();
+        if (shapeRenderer != null)
+            shapeRenderer.dispose();
+        if (groundTexture != null)
+            groundTexture.dispose();
+        if (stepTexture != null)
+            stepTexture.dispose();
+        if (gameplayUI != null)
+            gameplayUI.dispose();
+        if (pauseOverlay != null)
+            pauseOverlay.dispose();
+        if (gameOverOverlay != null)
+            gameOverOverlay.dispose();
         onExtraDispose();
     }
 }

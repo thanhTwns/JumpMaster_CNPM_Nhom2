@@ -3,6 +3,7 @@ package com.jumpmaster.game.controller;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.math.Vector2;
+import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.model.Player;
 
 public class InputHandler extends InputAdapter {
@@ -32,6 +33,7 @@ public class InputHandler extends InputAdapter {
         startPosition = new Vector2(screenX, Gdx.graphics.getHeight() - screenY);
         isDragging = true;
         dragVector.set(0, 0);
+        AudioManager.getInstance().playPullSound();// phát âm thanh kéo
         return true;
     }
 
@@ -66,6 +68,8 @@ public class InputHandler extends InputAdapter {
         force.scl(0.005f);
 
         player.jump(force);
+        AudioManager.getInstance().stopPullSound(); // Stop the loop
+        AudioManager.getInstance().playLaunchSound();// phát âm thanh nhảy
         dragVector.set(0, 0); // reset drag vector sau khi nhảy
         return true;
     }
