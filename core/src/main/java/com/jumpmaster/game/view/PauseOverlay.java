@@ -1,6 +1,5 @@
-package com.jumpmaster.game.ui;
+package com.jumpmaster.game.view;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;

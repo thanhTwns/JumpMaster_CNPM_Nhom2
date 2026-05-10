@@ -1,6 +1,5 @@
-package com.jumpmaster.game.screens;
+package com.jumpmaster.game.view;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
@@ -14,7 +13,6 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.jumpmaster.game.JumpMasterGame;
-import com.jumpmaster.game.controller.GameScreen;
 
 public class MainScreen implements Screen {
 
@@ -347,11 +345,11 @@ public class MainScreen implements Screen {
         float ty = screenH - Gdx.input.getY();
 
         if (btnClassic.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "classic"));
+            game.setScreen(new EarthScreen(game, "classic"));
         else if (btnTimeAttack.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "timeattack"));
+            game.setScreen(new EarthScreen(game, "timeattack"));
         else if (btnChallenge.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "challenge"));
+            game.setScreen(new EarthScreen(game, "challenge"));
         else if (btnSettings.contains(tx, ty))
             game.setScreen(new SettingsScreen(game));
     }

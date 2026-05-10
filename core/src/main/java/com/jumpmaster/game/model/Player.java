@@ -16,6 +16,7 @@ public class Player {
     private Texture texture;
     private float playerWidth;
     private float playerHeight;
+    public boolean isStunned = false;
 
     public Player(World world, float x, float y) {
         BodyDef bodyDef = new BodyDef();
@@ -23,6 +24,7 @@ public class Player {
         bodyDef.position.set(x / Constants.PPM, y / Constants.PPM);
 
         body = world.createBody(bodyDef);
+        this.body.setUserData("player");
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(16 / Constants.PPM, 16 / Constants.PPM);
 
@@ -39,7 +41,6 @@ public class Player {
 
         body.createFixture(fixtureDef);
         shape.dispose();
-
     }
 
     public void jump(Vector2 force) {

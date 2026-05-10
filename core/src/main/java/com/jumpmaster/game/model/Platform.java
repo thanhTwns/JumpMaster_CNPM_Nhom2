@@ -32,6 +32,7 @@ public class Platform {
         bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(x / Constants.PPM, y / Constants.PPM);
         body = world.createBody(bodyDef);
+        this.body.setUserData("platform");
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(widthMeters / 2f, heightMeters / 2f);
