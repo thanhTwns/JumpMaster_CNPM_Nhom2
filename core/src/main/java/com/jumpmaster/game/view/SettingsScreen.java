@@ -1,4 +1,4 @@
-package com.jumpmaster.game.screens;
+package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
