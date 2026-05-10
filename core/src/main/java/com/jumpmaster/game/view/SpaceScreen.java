@@ -75,39 +75,32 @@ public class SpaceScreen extends BaseScreen {
 
                 boolean isA_Player = "player".equals(dataA) || "player".equals(bodyDataA);
                 boolean isB_Player = "player".equals(dataB) || "player".equals(bodyDataB);
+
+                // Player chạm monster → game over
                 boolean isA_Monster = (bodyDataA instanceof Object[]) && "monster".equals(((Object[]) bodyDataA)[0]);
                 boolean isB_Monster = (bodyDataB instanceof Object[]) && "monster".equals(((Object[]) bodyDataB)[0]);
 
-                // Player chạm monster → game over
                 if ((isA_Player && isB_Monster) || (isB_Player && isA_Monster)) {
                     triggerGameOver();
                     return;
                 }
 
-                // Player tiếp đất → hết stun
-                boolean isA_Ground = "platform".equals(dataA) || "ground".equals(dataA)
-                    || "platform".equals(bodyDataA) || "ground".equals(bodyDataA);
-                boolean isB_Ground = "platform".equals(dataB) || "ground".equals(dataB)
-                    || "platform".equals(bodyDataB) || "ground".equals(bodyDataB);
+                // Player tiếp đất → hết stun + UC-3.3 Ghi nhận tiến độ
+                Platform platform = null;
+                if (isA_Player && bodyDataB instanceof Platform) platform = (Platform) bodyDataB;
+                else if (isB_Player && bodyDataA instanceof Platform) platform = (Platform) bodyDataA;
 
-                if ((isA_Player && isB_Ground) || (isB_Player && isA_Ground)) {
-                    if (player.body.getLinearVelocity().y <= 0) {
+                if (platform != null) {
+                    if (player.body.getLinearVelocity().y <= 0.1f) {
                         player.isStunned = false;
+                        handleLanding(platform);
                     }
                 }
             }
 
-            @Override
-            public void endContact(Contact c) {
-            }
-
-            @Override
-            public void preSolve(Contact c, Manifold m) {
-            }
-
-            @Override
-            public void postSolve(Contact c, ContactImpulse i) {
-            }
+            @Override public void endContact(Contact contact) {}
+            @Override public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
 
         // Monster animation sheet
@@ -147,6 +140,7 @@ public class SpaceScreen extends BaseScreen {
             }
             leftSide = !leftSide;
 
+            // Đã loại bỏ Platform.Type, chỉ tạo platform bình thường
             platforms.add(new Platform(world, randomX, currentY, platW, stepHeight, stepTexture));
             currentY += MathUtils.random(120f, 160f);
         }

@@ -13,9 +13,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.jumpmaster.game.GameSettings;
 import com.jumpmaster.game.utils.Constants;
+import com.jumpmaster.game.utils.ScoreManager;
 
 public class GameplayUI {
     public Stage stage;
+    private Label scoreLabel;
+    private Label comboLabel;
+    private Label columnLabel;
+    private ScoreManager scoreManager;
     private Label fpsLabel;
 
     public interface GameplayListener {
@@ -24,6 +29,28 @@ public class GameplayUI {
 
     public GameplayUI(SpriteBatch batch, final GameplayListener listener) {
         stage = new Stage(new FitViewport(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT), batch);
+
+        BitmapFont font = new BitmapFont();
+        font.getData().setScale(1.5f);
+
+        Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
+        scoreLabel = new Label("Score: 0", labelStyle);
+        columnLabel = new Label("Steps: 0", labelStyle);
+        comboLabel = new Label("", labelStyle);
+        comboLabel.setColor(Color.YELLOW);
+
+        Table topTable = new Table();
+        topTable.top().left();
+        topTable.setFillParent(true);
+        topTable.add(scoreLabel).pad(15).left();
+        topTable.row();
+        topTable.add(columnLabel).pad(15).left();
+        topTable.row();
+        topTable.add(comboLabel).pad(15).left();
+
+        Table actionTable = new Table();
+        actionTable.top().right();
+        actionTable.setFillParent(true);
 
         Table table = new Table();
         table.top();
@@ -45,6 +72,21 @@ public class GameplayUI {
             }
         });
 
+        actionTable.add(pauseButton).pad(15);
+
+        stage.addActor(topTable);
+        stage.addActor(actionTable);
+    }
+
+    public void update(ScoreManager sm) {
+        this.scoreManager = sm;
+        scoreLabel.setText("Score: " + sm.getCurrentScore());
+        columnLabel.setText("Steps: " + sm.getColumnsPassed());
+        if (sm.getCombo() > 1) {
+            comboLabel.setText("COMBO X" + sm.getCombo() + "!");
+        } else {
+            comboLabel.setText("");
+        }
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
         fpsLabel = new Label("0 FPS", labelStyle);
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
