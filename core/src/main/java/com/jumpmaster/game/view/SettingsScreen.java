@@ -61,6 +61,13 @@ public class SettingsScreen implements Screen {
 
     // load font theo size
     private void loadFonts() {
+        if (fontLarge != null)
+            fontLarge.dispose();
+        if (fontMedium != null)
+            fontMedium.dispose();
+        if (fontSmall != null)
+            fontSmall.dispose();
+
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
                 Gdx.files.internal("font/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf"));
 
@@ -93,6 +100,8 @@ public class SettingsScreen implements Screen {
 
     // tạo element
     private void createSkin() {
+        if (skin != null)
+            skin.dispose();
         skin = new Skin();
         skin.add("default-font", fontSmall);
 
@@ -228,15 +237,16 @@ public class SettingsScreen implements Screen {
         table.add(fpsCb).colspan(2).left().padBottom(25).row();
 
         // chọn mode màn hình
-        table.add(new Label("Display Mode", skin, "small")).left().padRight(20);
+        table.add(new Label("Display Mode: ", skin, "small")).left().padRight(30);
 
         Table modeTable = new Table();
-        final String[] modes = { "DEFAULT", "FULLSCREEN" };
-        final Label modeLabel = new Label(modes[settings.displayMode], skin, "small");
+        final String[] modes = { " DEFAULT ", " MAXIMIZED ", " FULLSCREEN " };
+        final Label modeLabel = new Label(modes[MathUtils.clamp(settings.displayMode, 0, modes.length - 1)], skin,
+                "small");
         modeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
 
-        TextButton leftArrow = new TextButton("<", skin, "small");
-        TextButton rightArrow = new TextButton(">", skin, "small");
+        TextButton leftArrow = new TextButton("< ", skin, "small");
+        TextButton rightArrow = new TextButton(" >", skin, "small");
 
         leftArrow.addListener(new ClickListener() {
             @Override
@@ -261,9 +271,9 @@ public class SettingsScreen implements Screen {
         });
 
         modeTable.add(leftArrow).padRight(10);
-        modeTable.add(modeLabel).width(120);
+        modeTable.add(modeLabel).width(140);
         modeTable.add(rightArrow).padLeft(10);
-        table.add(modeTable).left().padBottom(40).row();
+        table.add(modeTable).left().padBottom(0).row();
 
         // save option và quay lại main
         TextButton backBtn = new TextButton("BACK TO MENU", skin);
@@ -280,11 +290,8 @@ public class SettingsScreen implements Screen {
     }
 
     private void applyDisplayMode(int mode) {
-        if (mode == GameSettings.MODE_DEFAULT) {
-            Gdx.graphics.setWindowedMode(1280, 720);
-        } else if (mode == GameSettings.MODE_FULLSCREEN) {
-            Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-        }
+        GameSettings.getInstance().displayMode = mode;
+        GameSettings.getInstance().applyDisplayMode();
     }
 
     @Override
@@ -300,11 +307,26 @@ public class SettingsScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
+
+        if (GameSettings.getInstance().showFPS) {
+            batch.begin();
+            fontSmall.setColor(Color.WHITE);
+            fontSmall.draw(batch, Gdx.graphics.getFramesPerSecond() + " FPS", 10, Gdx.graphics.getHeight() - 10);
+            batch.end();
+        }
     }
 
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
+
+        // Reload fonts and skin to scale with new resolution
+        loadFonts();
+        createSkin();
+
+        // Rebuild the UI table to use the new skin/fonts
+        stage.clear();
+        buildUI();
     }
 
     @Override

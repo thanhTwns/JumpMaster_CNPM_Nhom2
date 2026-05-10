@@ -14,7 +14,8 @@ public class GameSettings {
     private static final String KEY_DISPLAY_MODE = "display_mode";
 
     public static final int MODE_DEFAULT = 0;
-    public static final int MODE_FULLSCREEN = 1;
+    public static final int MODE_MAXIMIZED = 1;
+    public static final int MODE_FULLSCREEN = 2;
 
     public float musicVolume = 0.5f;
     public float sfxVolume = 0.8f;
@@ -54,5 +55,18 @@ public class GameSettings {
         prefs.putBoolean(KEY_SHOW_FPS, showFPS);
         prefs.putInteger(KEY_DISPLAY_MODE, displayMode);
         prefs.flush();
+    }
+
+    /**
+     * Áp dụng cài đặt màn hình hiện tại lên cửa sổ game.
+     */
+    public void applyDisplayMode() {
+        if (displayMode == MODE_DEFAULT) {
+            Gdx.graphics.setWindowedMode(1200, 720);
+        } else if (displayMode == MODE_MAXIMIZED) {
+            Gdx.graphics.setWindowedMode(1920, 1080);
+        } else if (displayMode == MODE_FULLSCREEN) {
+            Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+        }
     }
 }

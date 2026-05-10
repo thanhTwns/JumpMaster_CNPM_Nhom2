@@ -26,12 +26,12 @@ public class GameplayUI {
         stage = new Stage(new FitViewport(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT), batch);
 
         Table table = new Table();
-        table.top().right();
+        table.top();
         table.setFillParent(true);
 
         BitmapFont font = new BitmapFont();
         font.getData().setScale(1.5f);
-        
+
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = font;
         style.fontColor = Color.WHITE;
@@ -49,9 +49,9 @@ public class GameplayUI {
         fpsLabel = new Label("0 FPS", labelStyle);
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
 
-        table.add(fpsLabel).pad(15).padRight(50);
-        table.add(pauseButton).pad(15);
-        
+        table.add(fpsLabel).left().expandX().pad(15);
+        table.add(pauseButton).right().pad(15);
+
         stage.addActor(table);
     }
 
@@ -62,7 +62,7 @@ public class GameplayUI {
         } else {
             fpsLabel.setVisible(false);
         }
-        
+
         stage.act();
         stage.draw();
     }
