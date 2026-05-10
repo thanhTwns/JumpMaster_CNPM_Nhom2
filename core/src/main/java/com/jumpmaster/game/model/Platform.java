@@ -12,6 +12,8 @@ import com.jumpmaster.game.utils.Constants;
 public class Platform {
     public Body body;
     private Texture texture;
+    public float width;
+    public float height;
     private float widthMeters;
     private float heightMeters;
 
@@ -21,9 +23,11 @@ public class Platform {
      * @param y         vị trí tâm Y (pixel)
      * @param width     chiều rộng (pixel)
      * @param height    chiều cao (pixel)
-     * @param texture   ảnh platform (ground.png hoặc platform_step.png)
+     * @param texture   ảnh platform
      */
     public Platform(World world, float x, float y, float width, float height, Texture texture) {
+        this.width = width;
+        this.height = height;
         this.widthMeters  = width  / Constants.PPM;
         this.heightMeters = height / Constants.PPM;
         this.texture      = texture;
@@ -32,7 +36,7 @@ public class Platform {
         bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(x / Constants.PPM, y / Constants.PPM);
         body = world.createBody(bodyDef);
-        this.body.setUserData("platform");
+        this.body.setUserData(this);
 
         PolygonShape shape = new PolygonShape();
         shape.setAsBox(widthMeters / 2f, heightMeters / 2f);

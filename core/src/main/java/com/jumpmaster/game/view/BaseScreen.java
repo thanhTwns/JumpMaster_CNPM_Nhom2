@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ObjectSet;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.controller.InputHandler;
@@ -68,6 +69,7 @@ public abstract class BaseScreen implements Screen {
 
     protected Player player;
     protected Array<Platform> platforms;
+    protected ObjectSet<Platform> visitedPlatforms = new ObjectSet<>();
 
     protected float highestY = 0f;
     protected float smoothCamY = 0f;
@@ -262,6 +264,9 @@ public abstract class BaseScreen implements Screen {
         if (!isPaused && currentState != State.GAME_OVER) {
             world.step(1 / 60f, 6, 2);
 
+            // Cập nhật ScoreManager để xử lý đếm ngược combo 5s
+            scoreManager.update(delta);
+
             float py = player.body.getPosition().y;
             if (py > highestY) highestY = py;
 
@@ -313,7 +318,35 @@ public abstract class BaseScreen implements Screen {
             updateInputProcessors();
             gameOverOverlay.render();
         } else if (isPaused) pauseOverlay.render();
-        else gameplayUI.render();
+        else {
+            gameplayUI.update(scoreManager);
+            gameplayUI.render();
+        }
+    }
+
+    // -------------------------------------------------------
+    // UC-3.3: Ghi nhận tiến độ - Xử lý tiếp đất (Refactored)
+    // -------------------------------------------------------
+    protected void handleLanding(Platform platform) {
+        if (platform == null || visitedPlatforms.contains(platform)) {
+            return;
+        }
+
+        visitedPlatforms.add(platform);
+        scoreManager.incrementColumns();
+
+        // Tính Base point = 10 (mặc định cho mỗi bậc bình thường)
+        int basePoint = 10;
+
+        // Combo logic (Chỉ tính trong vòng 5 giây, đã được reset tự động trong ScoreManager.update)
+        scoreManager.incrementCombo();
+        float comboMultiplier = 1.0f;
+        if (scoreManager.getCombo() > 1) {
+            comboMultiplier = 1.0f + (scoreManager.getCombo() - 1) * 0.5f; // x1.5, x2.0, x2.5...
+        }
+
+        int finalPoints = (int) (basePoint * comboMultiplier);
+        scoreManager.addPoints(finalPoints);
     }
 
     // -------------------------------------------------------
@@ -327,10 +360,9 @@ public abstract class BaseScreen implements Screen {
         player.body.setLinearVelocity(0, 0);
         if (inputHandler != null) inputHandler.reset();
 
-        int score = (int) (highestY * 10);
-        boolean isNew = score > scoreManager.getHighScore();
-        scoreManager.saveHighScore(score);
-        gameOverOverlay.setData(score, scoreManager.getHighScore(), isNew);
+        scoreManager.flush(); // UC-3.3 AF3: Flush toàn bộ dữ liệu xuống local storage
+        gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(),
+            scoreManager.getCurrentScore() >= scoreManager.getHighScore());
     }
 
     // -------------------------------------------------------
@@ -342,6 +374,8 @@ public abstract class BaseScreen implements Screen {
             isPaused = false;
             idleTimer = 0;
             highestY = 0;
+            visitedPlatforms.clear();
+            scoreManager.resetSession();
 
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
