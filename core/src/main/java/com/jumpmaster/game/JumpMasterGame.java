@@ -2,7 +2,7 @@ package com.jumpmaster.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.jumpmaster.game.screens.MainScreen;
+import com.jumpmaster.game.view.MainScreen;
 
 /** {@link com.badlogic.gdx.ApplicationListener} implementation shared by all platforms. */
 public class JumpMasterGame extends Game {
