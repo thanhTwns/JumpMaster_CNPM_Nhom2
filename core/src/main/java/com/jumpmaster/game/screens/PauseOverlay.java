@@ -1,6 +1,5 @@
-package com.jumpmaster.game.ui;
+package com.jumpmaster.game.screens;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,6 +21,7 @@ public class PauseOverlay {
 
     public interface PauseListener {
         void onResume();
+        void onMenu();
         void onQuit();
     }
 
@@ -30,7 +30,7 @@ public class PauseOverlay {
 
         // background mờ đen
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0, 0, 0, 0.6f);
+        pixmap.setColor(0, 0, 0, 0.7f); // Tăng độ mờ một chút
         pixmap.fill();
         backgroundTexture = new Texture(pixmap);
         pixmap.dispose();
@@ -41,17 +41,19 @@ public class PauseOverlay {
 
         // Font và Style
         BitmapFont font = new BitmapFont();
-        font.getData().setScale(2f);
+        font.getData().setScale(2.5f); // Tăng kích thước font nút
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.font = font;
         buttonStyle.fontColor = Color.WHITE;
         buttonStyle.overFontColor = Color.YELLOW;
+        buttonStyle.downFontColor = Color.CYAN;
 
         Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
         Label titleLabel = new Label("PAUSED", labelStyle);
-        titleLabel.setFontScale(3f);
+        titleLabel.setFontScale(2.0f);
 
         TextButton resumeButton = new TextButton("RESUME", buttonStyle);
+        TextButton menuButton = new TextButton("MENU", buttonStyle);
         TextButton quitButton = new TextButton("QUIT", buttonStyle);
 
         // Sự kiện nhấn nút
@@ -62,6 +64,13 @@ public class PauseOverlay {
             }
         });
 
+        menuButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                listener.onMenu();
+            }
+        });
+
         quitButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -69,10 +78,10 @@ public class PauseOverlay {
             }
         });
 
-        // xếp UI
-        table.add(titleLabel).padBottom(50).row();
-        table.add(resumeButton).padBottom(20).row();
-        table.add(quitButton);
+        table.add(titleLabel).padBottom(60).row();
+        table.add(resumeButton).padBottom(30).width(300).height(80).row();
+        table.add(menuButton).padBottom(30).width(300).height(80).row();
+        table.add(quitButton).width(300).height(80);
 
         stage.addActor(table);
     }

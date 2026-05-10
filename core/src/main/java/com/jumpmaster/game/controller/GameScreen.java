@@ -1,6 +1,5 @@
 package com.jumpmaster.game.controller;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputMultiplexer;
@@ -12,7 +11,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
@@ -20,10 +18,9 @@ import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
 import com.jumpmaster.game.screens.MainScreen;
-import com.jumpmaster.game.screens.SettingsScreen;
-import com.jumpmaster.game.ui.GameOverOverlay;
-import com.jumpmaster.game.ui.GameplayUI;
-import com.jumpmaster.game.ui.PauseOverlay;
+import com.jumpmaster.game.screens.GameOverOverlay;
+import com.jumpmaster.game.screens.GameplayUI;
+import com.jumpmaster.game.screens.PauseOverlay;
 import com.jumpmaster.game.utils.Constants;
 import com.jumpmaster.game.utils.ScoreManager;
 
@@ -205,6 +202,11 @@ public class GameScreen implements Screen {
             }
 
             @Override
+            public void onMenu() {
+                goToMenu();
+            }
+
+            @Override
             public void onQuit() {
                 Gdx.app.exit();
             }
@@ -217,9 +219,9 @@ public class GameScreen implements Screen {
         });
         // Multiplexer để nhận cả input từ UI và Game
         multiplexer = new InputMultiplexer();
+        multiplexer.addProcessor(pauseOverlay.stage);
         multiplexer.addProcessor(gameOverOverlay.stage);
         multiplexer.addProcessor(gameplayUI.stage);
-        multiplexer.addProcessor(pauseOverlay.stage);
         multiplexer.addProcessor(inputHandler);
         Gdx.input.setInputProcessor(multiplexer);
 
@@ -440,10 +442,11 @@ public class GameScreen implements Screen {
     }
 
     private void goToMenu() {
-        Gdx.app.postRunnable(() -> {
-            // Không cần dispose() ở đây vì MainScreen đã tự quản lý asset của nó
-            game.setScreen(new MainScreen(game));
-        });
+        // Thoát ngay lập tức về Menu và xóa Input Processor cũ
+        isPaused = false;
+        currentState = State.RUNNING;
+        Gdx.input.setInputProcessor(null);
+        game.setScreen(new MainScreen(game));
     }
 
     //

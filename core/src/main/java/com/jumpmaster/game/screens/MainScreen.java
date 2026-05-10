@@ -55,6 +55,7 @@ public class MainScreen implements Screen {
     // Nhân vật
     private float bobT = 0;
     private float t    = 0;
+    private float inputCooldown = 0.25f; // Ngăn nhận nhầm click từ màn hình trước
 
     // Nút bấm
     private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores;
@@ -78,6 +79,7 @@ public class MainScreen implements Screen {
         iconSettings.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconTrophy.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
+        inputCooldown = 0.25f;
     }
 
     // ── resize() is the single source of truth for W/H ──────────────────────
@@ -197,7 +199,11 @@ public class MainScreen implements Screen {
 
         if (scrollX < -(screenW / (float) COL_H.length + COL_W)) scrollX = 0;
 
-        handleInput();
+        if (inputCooldown > 0) {
+            inputCooldown -= delta;
+        } else {
+            handleInput();
+        }
 
         Gdx.gl.glClearColor(BG.r, BG.g, BG.b, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
