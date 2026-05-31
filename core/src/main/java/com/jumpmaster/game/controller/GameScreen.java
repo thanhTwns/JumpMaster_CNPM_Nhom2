@@ -21,8 +21,8 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
-import com.jumpmaster.game.ui.GameplayUI;
-import com.jumpmaster.game.ui.PauseOverlay;
+import com.jumpmaster.game.view.GameplayUI;
+import com.jumpmaster.game.view.PauseOverlay;
 import com.jumpmaster.game.ui.TimeAttackUI;
 import com.jumpmaster.game.utils.Constants;
 

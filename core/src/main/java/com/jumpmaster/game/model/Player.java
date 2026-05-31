@@ -14,6 +14,7 @@ public class Player {
 
     public Body body;
     private Texture texture;
+    public boolean isStunned = false;
 
     // Kích thước vẽ — đơn vị PIXELS
     private static final float DRAW_WIDTH  = 64f;
