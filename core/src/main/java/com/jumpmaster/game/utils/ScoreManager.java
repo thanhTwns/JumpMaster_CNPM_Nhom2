@@ -57,6 +57,8 @@ public class ScoreManager {
         currentScore += points;
         if (currentScore > highScore) {
             highScore = currentScore;
+            // Lưu ngay lập tức để tránh mất dữ liệu nếu app crash trước flush()
+            saveHighScore(highScore);
         }
     }
 

@@ -20,6 +20,7 @@ public class InputHandler extends InputAdapter {
         this.player = player;
     }
 
+    // 2.5.1 Khi người dùng tương tác cảm ứng, các hàm sẽ được gọi tương ứng để xử lí
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (player.isStunned) return false;

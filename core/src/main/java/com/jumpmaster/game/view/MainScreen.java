@@ -345,7 +345,7 @@ public class MainScreen implements Screen {
         float ty = screenH - Gdx.input.getY();
 
         if (btnClassic.contains(tx, ty))
-            game.setScreen(new EarthScreen(game, "classic"));
+            game.setScreen(new SpaceScreen(game));
         else if (btnTimeAttack.contains(tx, ty))
             game.setScreen(new EarthScreen(game, "timeattack"));
         else if (btnChallenge.contains(tx, ty))
