@@ -8,56 +8,68 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
-import com.jumpmaster.game.controller.InputHandler;
 import com.jumpmaster.game.utils.Constants;
 
 public class Player {
+
     public Body body;
     private Texture texture;
-    private float playerWidth;
-    private float playerHeight;
     public boolean isStunned = false;
+
+    // Kích thước vẽ — đơn vị PIXELS
+    private static final float DRAW_WIDTH  = 64f;
+    private static final float DRAW_HEIGHT = 64f;
 
     public Player(World world, float x, float y) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
+        // x, y truyền vào là pixels → chia PPM để sang world-units
         bodyDef.position.set(x / Constants.PPM, y / Constants.PPM);
 
         body = world.createBody(bodyDef);
-        this.body.setUserData("player");
+
+        // Hitbox: 16x16 pixels → 16/PPM metres mỗi chiều
         PolygonShape shape = new PolygonShape();
-        shape.setAsBox(16 / Constants.PPM, 16 / Constants.PPM);
+        shape.setAsBox(16f / Constants.PPM, 16f / Constants.PPM);
 
         FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
-        fixtureDef.density = 1.0f; //Khối lượng
-        fixtureDef.restitution = 0.2f; // Độ nảy (0 là không nảy, 1 là nảy như bóng cao su)
-        fixtureDef.friction = 0.5f; //Lực ma sát
-
-        //player
-        texture = new Texture("chicken.png");
-        playerWidth = 64f;
-        playerHeight = 64f;
+        fixtureDef.shape       = shape;
+        fixtureDef.density     = 1.0f;
+        fixtureDef.restitution = 0.2f;
+        fixtureDef.friction    = 0.5f;
 
         body.createFixture(fixtureDef);
         shape.dispose();
+
+        texture = new Texture("chicken.png");
     }
 
-    //2.5.2 Khi người dùng thả tay, hàm jump() được gọi để tính toán lực nhảy
     public void jump(Vector2 force) {
         float velocityY = body.getLinearVelocity().y;
-        if(Math.abs(velocityY) < 0.1f) {
+        if (Math.abs(velocityY) < 0.1f) {
             body.applyLinearImpulse(force, body.getWorldCenter(), true);
         }
     }
 
+    /**
+     * Vẽ player.
+     * Batch phải đang dùng projection pixel-space (bgCam.combined).
+     * body.getPosition() trả về world-units (metres) → nhân PPM để sang pixels.
+     */
     public void draw(SpriteBatch batch) {
-        float drawWidth = playerWidth / Constants.PPM;
-        float drawHeight = playerHeight / Constants.PPM;
+        // Vị trí tâm body (metres) → pixels
+        float centerX = body.getPosition().x * Constants.PPM;
+        float centerY = body.getPosition().y * Constants.PPM;
 
-        float drawX = body.getPosition().x - (drawWidth / 2f);
-        float drawY = body.getPosition().y - (drawHeight / 2f);
+        // Vẽ căn giữa vào tâm body
+        batch.draw(texture,
+            centerX - DRAW_WIDTH  / 2f,
+            centerY - DRAW_HEIGHT / 2f,
+            DRAW_WIDTH,
+            DRAW_HEIGHT);
+    }
 
-        batch.draw(texture, drawX, drawY, drawWidth, drawHeight);
+    public void dispose() {
+        if (texture != null) texture.dispose();
     }
 }
