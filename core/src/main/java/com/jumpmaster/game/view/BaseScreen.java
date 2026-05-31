@@ -76,6 +76,7 @@ public abstract class BaseScreen implements Screen {
     protected Player player;
     protected Array<Platform> platforms;
     protected ObjectSet<Platform> visitedPlatforms = new ObjectSet<>();
+    protected Platform groundPlatform; // mặt đất — không tính điểm khi chạm
 
     protected float highestY = 0f;
     protected float smoothCamY = 0f;
@@ -161,17 +162,15 @@ public abstract class BaseScreen implements Screen {
         return 80f;
     }
 
-    // -------------------------------------------------------
-    // SHOW — khởi tạo toàn bộ phần chung
-    // -------------------------------------------------------
+    // 2.1.1. Khi người dùng bắt đầu trò chơi, hàm show() khởi tạo tài nguyên
     @Override
     public void show() {
         AudioManager.getInstance().playGameMusic();
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
-                Constants.VIEWPORT_WIDTH / Constants.PPM,
-                Constants.VIEWPORT_HEIGHT / Constants.PPM,
-                camera);
+            Constants.VIEWPORT_WIDTH / Constants.PPM,
+            Constants.VIEWPORT_HEIGHT / Constants.PPM,
+            camera);
         world = new World(new Vector2(0, Constants.GRAVITY), true);
 
         // Background do lớp con quyết định
@@ -323,8 +322,8 @@ public abstract class BaseScreen implements Screen {
             float pX = player.body.getPosition().x;
             float pY = player.body.getPosition().y;
             shapeRenderer.line(pX, pY,
-                    pX + inputHandler.dragVector.x / Constants.PPM,
-                    pY + inputHandler.dragVector.y / Constants.PPM);
+                pX + inputHandler.dragVector.x / Constants.PPM,
+                pY + inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.end();
 
             // vẽ đường dự đoán
@@ -360,7 +359,8 @@ public abstract class BaseScreen implements Screen {
     // UC-3.3: Ghi nhận tiến độ - Xử lý tiếp đất (Refactored)
     // -------------------------------------------------------
     protected void handleLanding(Platform platform) {
-        if (platform == null || visitedPlatforms.contains(platform)) {
+        // Bỏ qua mặt đất (spawn platform) và platform đã đáp rồi
+        if (platform == null || platform == groundPlatform || visitedPlatforms.contains(platform)) {
             return;
         }
 
@@ -379,7 +379,7 @@ public abstract class BaseScreen implements Screen {
 
         int finalPoints = (int) (basePoint * comboMultiplier);
         scoreManager.addPoints(finalPoints);
-        }
+    }
 
     // -------------------------------------------------------
     // TRIGGER GAME OVER
@@ -394,9 +394,10 @@ public abstract class BaseScreen implements Screen {
         if (inputHandler != null)
             inputHandler.reset();
 
-        scoreManager.flush(); // UC-3.3 AF3: Flush toàn bộ dữ liệu xuống local storage
-        gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(),
-            scoreManager.getCurrentScore() >= scoreManager.getHighScore());
+        // UC-3.3 AF3: Kiểm tra new record TRƯỚC khi flush, vì flush() sẽ update highScore
+        boolean isNewRecord = scoreManager.getCurrentScore() > scoreManager.getHighScore();
+        scoreManager.flush();
+        gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(), isNewRecord);
     }
 
     // -------------------------------------------------------
@@ -414,7 +415,7 @@ public abstract class BaseScreen implements Screen {
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
             player.body.setTransform(
-                    new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
+                new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
 
             camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
             smoothCamY = camera.position.y;

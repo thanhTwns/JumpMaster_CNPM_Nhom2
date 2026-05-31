@@ -43,6 +43,7 @@ public class Player {
         shape.dispose();
     }
 
+    //2.5.2 Khi người dùng thả tay, hàm jump() được gọi để tính toán lực nhảy
     public void jump(Vector2 force) {
         float velocityY = body.getLinearVelocity().y;
         if(Math.abs(velocityY) < 0.1f) {

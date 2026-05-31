@@ -2,11 +2,18 @@ package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.utils.Array;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.utils.Constants;
@@ -21,6 +28,16 @@ public class EarthScreen extends BaseScreen {
     private float levelClearY = Float.MAX_VALUE;
     private boolean levelCleared = false;
     private final String mode;
+
+    // Bat (dơi) system
+    private Array<Body> bats;
+    private Texture batSheet;
+    private Animation<TextureRegion> batAnimation;
+    private float batStateTime = 0f;
+    private float batSpawnTimer = 0f;
+    private static final float BAT_SPAWN_INTERVAL = 4.0f;
+    private static final int BAT_FRAME_COLS = 6;
+    private static final int BAT_FRAME_ROWS = 1;
 
     public EarthScreen(JumpMasterGame game, String mode) {
         super(game);
@@ -47,18 +64,29 @@ public class EarthScreen extends BaseScreen {
         world.setContactListener(new ContactListener() {
             @Override
             public void beginContact(Contact contact) {
+                Object dataA = contact.getFixtureA().getUserData();
+                Object dataB = contact.getFixtureB().getUserData();
                 Object bodyDataA = contact.getFixtureA().getBody().getUserData();
                 Object bodyDataB = contact.getFixtureB().getBody().getUserData();
 
-                boolean isA_Player = "player".equals(bodyDataA);
-                boolean isB_Player = "player".equals(bodyDataB);
+                boolean isA_Player = "player".equals(dataA) || "player".equals(bodyDataA);
+                boolean isB_Player = "player".equals(dataB) || "player".equals(bodyDataB);
 
+                // Player chạm dơi → game over
+                boolean isA_Bat = (bodyDataA instanceof Object[]) && "bat".equals(((Object[]) bodyDataA)[0]);
+                boolean isB_Bat = (bodyDataB instanceof Object[]) && "bat".equals(((Object[]) bodyDataB)[0]);
+                if ((isA_Player && isB_Bat) || (isB_Player && isA_Bat)) {
+                    triggerGameOver();
+                    return;
+                }
+
+                // Player tiếp đất
                 Platform platform = null;
                 if (isA_Player && bodyDataB instanceof Platform) platform = (Platform) bodyDataB;
                 else if (isB_Player && bodyDataA instanceof Platform) platform = (Platform) bodyDataA;
 
                 if (platform != null) {
-                    if (player.body.getLinearVelocity().y <= 0.1f) {
+                    if (player.body.getLinearVelocity().y < -0.05f) {
                         handleLanding(platform);
                     }
                 }
@@ -68,11 +96,24 @@ public class EarthScreen extends BaseScreen {
             @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
 
+        // Khởi tạo bat animation (dùng flying-head.png)
+        bats = new Array<>();
+        batSheet = new Texture(Gdx.files.internal("flying-head.png"));
+        int frameW = batSheet.getWidth() / BAT_FRAME_COLS;
+        int frameH = batSheet.getHeight() / BAT_FRAME_ROWS;
+        TextureRegion[][] tmp = TextureRegion.split(batSheet, frameW, frameH);
+        Array<TextureRegion> frames = new Array<>();
+        for (int i = 0; i < BAT_FRAME_ROWS; i++)
+            for (int j = 0; j < BAT_FRAME_COLS; j++)
+                frames.add(tmp[i][j]);
+        batAnimation = new Animation<>(0.1f, frames);
+
         float groundHeight = 48f;
         float groundWidth = Constants.VIEWPORT_WIDTH + 200f;
-        platforms.add(new Platform(world,
+        groundPlatform = new Platform(world,
             Constants.VIEWPORT_WIDTH / 2f, groundHeight / 2f,
-            groundWidth, groundHeight, groundTexture));
+            groundWidth, groundHeight, groundTexture);
+        platforms.add(groundPlatform);
 
         float stepHeight = 16f;
         float currentY = 150f;
@@ -124,10 +165,12 @@ public class EarthScreen extends BaseScreen {
         return levelCleared ? Float.MAX_VALUE : levelClearY;
     }
 
+    //2.3.1.1 Khi người dùng qua màn
     @Override
     protected void onLevelComplete() {
         if (levelCleared) return;
         levelCleared = true;
+        scoreManager.flush(); // Lưu điểm trước khi chuyển màn
         Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game)));
     }
 
@@ -137,8 +180,91 @@ public class EarthScreen extends BaseScreen {
         super.restartGame();
     }
 
+    // -------------------------------------------------------
+    // BAT — update spawn timer
+    // -------------------------------------------------------
+    @Override
+    protected void onExtraUpdate(float delta) {
+        batStateTime += delta;
+        batSpawnTimer += delta;
+        if (batSpawnTimer >= BAT_SPAWN_INTERVAL) {
+            spawnBat();
+            batSpawnTimer = 0f;
+        }
+    }
+
+    // -------------------------------------------------------
+    // BAT — vẽ dơi
+    // -------------------------------------------------------
+    @Override
+    protected void onExtraDraw() {
+        Array<Body> toRemove = new Array<>();
+        for (Body b : bats) {
+            Object[] data = (Object[]) b.getUserData();
+            boolean facingRight = (boolean) data[1];
+
+            TextureRegion frame = batAnimation.getKeyFrame(batStateTime, true);
+            float wB = frame.getRegionWidth() / Constants.PPM;
+            float hB = frame.getRegionHeight() / Constants.PPM;
+            float drawX = b.getPosition().x - wB / 2f;
+            float drawY = b.getPosition().y - hB / 2f;
+
+            game.batch.draw(frame.getTexture(),
+                drawX, drawY,
+                wB / 2f, hB / 2f,
+                wB, hB,
+                1f, 1f, 0f,
+                frame.getRegionX(), frame.getRegionY(),
+                frame.getRegionWidth(), frame.getRegionHeight(),
+                !facingRight, false);
+
+            float camX = camera.position.x;
+            float halfCamW = (Constants.VIEWPORT_WIDTH / Constants.PPM) / 2f;
+            if (b.getPosition().x > camX + halfCamW + 2f
+                || b.getPosition().x < camX - halfCamW - 2f) {
+                toRemove.add(b);
+            }
+        }
+        for (Body b : toRemove) {
+            world.destroyBody(b);
+            bats.removeValue(b, true);
+        }
+    }
+
+    // -------------------------------------------------------
+    // BAT — spawn dơi từ trái hoặc phải
+    // -------------------------------------------------------
+    private void spawnBat() {
+        boolean fromLeft = MathUtils.randomBoolean();
+        float camX = camera.position.x;
+        float camY = camera.position.y;
+        float halfW = (Constants.VIEWPORT_WIDTH / Constants.PPM) / 2f;
+        float halfH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+
+        float spawnY = camY + MathUtils.random(-halfH * 0.8f, halfH * 0.8f);
+        float spawnX = fromLeft ? (camX - halfW - 1f) : (camX + halfW + 1f);
+
+        BodyDef bdef = new BodyDef();
+        bdef.type = BodyDef.BodyType.KinematicBody;
+        bdef.position.set(spawnX, spawnY);
+        Body batBody = world.createBody(bdef);
+
+        CircleShape shape = new CircleShape();
+        shape.setRadius(15f / Constants.PPM);
+        FixtureDef fdef = new FixtureDef();
+        fdef.shape = shape;
+        fdef.isSensor = true;
+        batBody.createFixture(fdef).setUserData("bat");
+        shape.dispose();
+
+        batBody.setLinearVelocity(fromLeft ? 2f : -2f, 0);
+        batBody.setUserData(new Object[]{"bat", fromLeft});
+        bats.add(batBody);
+    }
+
     @Override
     protected void onExtraDispose() {
         if (bgLayers != null) for (Texture t : bgLayers) t.dispose();
+        if (batSheet != null) batSheet.dispose();
     }
 }
