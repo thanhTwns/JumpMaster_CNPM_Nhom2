@@ -153,7 +153,7 @@ public class TimeAttackUI {
         font.setColor(Color.YELLOW);
         font.draw(batch,
             "LEVEL  " + currentLevel,
-            Gdx.graphics.getWidth() - 120f,
+            Gdx.graphics.getWidth() - 200f,
             screenH - BAR_Y_FROM_TOP
         );
     }
