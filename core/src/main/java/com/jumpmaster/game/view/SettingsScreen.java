@@ -17,8 +17,10 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.GameSettings;
 import com.jumpmaster.game.JumpMasterGame;
 
@@ -30,7 +32,6 @@ public class SettingsScreen implements Screen {
     private SpriteBatch batch;
     private ShapeRenderer sr;
 
-    // sử dụng lại assets từ main
     private static final Color BG = new Color(0.05f, 0.05f, 0.10f, 1f);
     private static final Color RED = new Color(0.91f, 0.27f, 0.37f, 1f);
     private static final Color WHITE = new Color(Color.WHITE);
@@ -39,9 +40,6 @@ public class SettingsScreen implements Screen {
     private BitmapFont fontLarge;
     private BitmapFont fontMedium;
     private BitmapFont fontSmall;
-
-    private float t = 0;
-    private int screenW, screenH;
 
     public SettingsScreen(JumpMasterGame game) {
         this.game = game;
@@ -59,14 +57,10 @@ public class SettingsScreen implements Screen {
         buildUI();
     }
 
-    // load font theo size
     private void loadFonts() {
-        if (fontLarge != null)
-            fontLarge.dispose();
-        if (fontMedium != null)
-            fontMedium.dispose();
-        if (fontSmall != null)
-            fontSmall.dispose();
+        if (fontLarge != null) fontLarge.dispose();
+        if (fontMedium != null) fontMedium.dispose();
+        if (fontSmall != null) fontSmall.dispose();
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
                 Gdx.files.internal("font/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf"));
@@ -86,22 +80,22 @@ public class SettingsScreen implements Screen {
         p.borderColor = RED;
         fontLarge = generator.generateFont(p);
 
-        p.size = Math.round(base * 0.05f);
+        p.size = Math.round(base * 0.055f);
         p.color = Color.WHITE;
-        p.borderWidth = 0f;
+        p.borderWidth = 0.5f;
+        p.borderColor = RED;
         fontMedium = generator.generateFont(p);
 
         p.size = Math.round(base * 0.035f);
         p.color = WHITE;
+        p.borderWidth = 0f;
         fontSmall = generator.generateFont(p);
 
         generator.dispose();
     }
 
-    // tạo element
     private void createSkin() {
-        if (skin != null)
-            skin.dispose();
+        if (skin != null) skin.dispose();
         skin = new Skin();
         skin.add("default-font", fontSmall);
 
@@ -118,7 +112,6 @@ public class SettingsScreen implements Screen {
         pixmap.fill();
         skin.add("purple", new Texture(pixmap));
 
-        // volume slider
         Slider.SliderStyle sliderStyle = new Slider.SliderStyle();
         sliderStyle.background = skin.newDrawable("white", Color.GRAY);
         sliderStyle.background.setMinHeight(10);
@@ -127,7 +120,6 @@ public class SettingsScreen implements Screen {
         sliderStyle.knob.setMinHeight(30);
         skin.add("default-horizontal", sliderStyle);
 
-        // toggle trigger
         CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
         checkBoxStyle.font = fontSmall;
         checkBoxStyle.fontColor = Color.WHITE;
@@ -139,7 +131,6 @@ public class SettingsScreen implements Screen {
         checkBoxStyle.checkboxOn.setMinHeight(25);
         skin.add("default", checkBoxStyle);
 
-        // label
         Label.LabelStyle labelLarge = new Label.LabelStyle();
         labelLarge.font = fontLarge;
         labelLarge.fontColor = Color.WHITE;
@@ -154,11 +145,27 @@ public class SettingsScreen implements Screen {
         labelSmall.font = fontSmall;
         labelSmall.fontColor = Color.WHITE;
         skin.add("small", labelSmall);
-
-        // chọn small làm font default
         skin.add("default", labelSmall);
 
-        // button
+        List.ListStyle listStyle = new List.ListStyle();
+        listStyle.font = fontSmall;
+        listStyle.fontColorSelected = Color.WHITE;
+        listStyle.fontColorUnselected = Color.LIGHT_GRAY;
+        listStyle.selection = skin.newDrawable("red");
+        skin.add("default", listStyle);
+
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        scrollPaneStyle.background = skin.newDrawable("white", Color.DARK_GRAY);
+        skin.add("default", scrollPaneStyle);
+
+        SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+        selectBoxStyle.font = fontSmall;
+        selectBoxStyle.fontColor = Color.WHITE;
+        selectBoxStyle.background = skin.newDrawable("white", Color.DARK_GRAY);
+        selectBoxStyle.scrollStyle = scrollPaneStyle;
+        selectBoxStyle.listStyle = listStyle;
+        skin.add("default", selectBoxStyle);
+
         TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
         textButtonStyle.font = fontMedium;
         textButtonStyle.fontColor = Color.WHITE;
@@ -181,102 +188,13 @@ public class SettingsScreen implements Screen {
         table.setFillParent(true);
         table.center();
 
-        Label title = new Label("SETTINGS", skin, "large");
-        table.add(title).padBottom(50).colspan(2).row();
+        GameSettings settings = GameSettings.getInstance();
 
-        final GameSettings settings = GameSettings.getInstance();
-
-        // music slider
-        Label musicLabel = new Label("Music Volume", skin, "small");
-        table.add(musicLabel).left().padRight(20);
-
-        final Slider musicSlider = new Slider(0, 1, 0.05f, false, skin);
-        musicSlider.setValue(settings.musicVolume);
-        musicSlider.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                settings.musicVolume = musicSlider.getValue();
-                com.jumpmaster.game.AudioManager.getInstance().updateMusicVolume();
-            }
-        });
-        table.add(musicSlider).width(200).padBottom(15).row();
-
-        // sfx slider
-        Label sfxLabel = new Label("SFX Volume", skin, "small");
-        table.add(sfxLabel).left().padRight(20);
-
-        final Slider sfxSlider = new Slider(0, 1, 0.05f, false, skin);
-        sfxSlider.setValue(settings.sfxVolume);
-        sfxSlider.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                settings.sfxVolume = sfxSlider.getValue();
-            }
-        });
-        table.add(sfxSlider).width(200).padBottom(30).row();
-
-        // toggle buttons
-        final CheckBox trajectoryCb = new CheckBox(" Show Trajectory", skin);
-        trajectoryCb.setChecked(settings.showTrajectory);
-        trajectoryCb.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                settings.showTrajectory = trajectoryCb.isChecked();
-            }
-        });
-        table.add(trajectoryCb).colspan(2).left().padBottom(15).row();
-
-        final CheckBox fpsCb = new CheckBox(" Show FPS Counter", skin);
-        fpsCb.setChecked(settings.showFPS);
-        fpsCb.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                settings.showFPS = fpsCb.isChecked();
-            }
-        });
-        table.add(fpsCb).colspan(2).left().padBottom(25).row();
-
-        // chọn mode màn hình
-        table.add(new Label("Display Mode: ", skin, "small")).left().padRight(30);
-
-        Table modeTable = new Table();
-        final String[] modes = { " DEFAULT ", " MAXIMIZED ", " FULLSCREEN " };
-        final Label modeLabel = new Label(modes[MathUtils.clamp(settings.displayMode, 0, modes.length - 1)], skin,
-                "small");
-        modeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
-
-        TextButton leftArrow = new TextButton("< ", skin, "small");
-        TextButton rightArrow = new TextButton(" >", skin, "small");
-
-        leftArrow.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                settings.displayMode--;
-                if (settings.displayMode < 0)
-                    settings.displayMode = modes.length - 1;
-                modeLabel.setText(modes[settings.displayMode]);
-                applyDisplayMode(settings.displayMode);
-            }
-        });
-
-        rightArrow.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                settings.displayMode++;
-                if (settings.displayMode >= modes.length)
-                    settings.displayMode = 0;
-                modeLabel.setText(modes[settings.displayMode]);
-                applyDisplayMode(settings.displayMode);
-            }
-        });
-
-        modeTable.add(leftArrow).padRight(10);
-        modeTable.add(modeLabel).width(140);
-        modeTable.add(rightArrow).padLeft(10);
-        table.add(modeTable).left().padBottom(0).row();
-
-        // save option và quay lại main
-        TextButton backBtn = new TextButton("BACK TO MENU", skin);
+        // Nút Back to Menu
+        Table topTable = new Table();
+        topTable.setFillParent(true);
+        topTable.top().right();
+        TextButton backBtn = new TextButton("BACK TO MENU", skin, "small");
         backBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -284,7 +202,91 @@ public class SettingsScreen implements Screen {
                 game.setScreen(new MainScreen(game));
             }
         });
-        table.add(backBtn).colspan(2).padTop(20).row();
+        topTable.add(backBtn).pad(15);
+        stage.addActor(topTable);
+
+        Label title = new Label("SETTINGS", skin, "large");
+        table.add(title).padBottom(30).center().row();
+
+        // ----------------- PHẦN SOUND -----------------
+        Label soundHeader = new Label("SOUND", skin, "medium");
+        soundHeader.setColor(RED);
+        table.add(soundHeader).center().padBottom(10).row();
+
+        Table soundTable = new Table();
+
+        // Music Volume
+        soundTable.add(new Label("Music Volume", skin, "small")).padRight(20);
+        Slider musicSlider = new Slider(0, 1, 0.05f, false, skin);
+        musicSlider.setValue(settings.musicVolume);
+        musicSlider.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.musicVolume = musicSlider.getValue();
+                AudioManager.getInstance().updateMusicVolume();
+            }
+        });
+        soundTable.add(musicSlider).width(200).padBottom(10).row();
+
+        // SFX Volume
+        soundTable.add(new Label("SFX Volume", skin, "small")).padRight(20);
+        Slider sfxSlider = new Slider(0, 1, 0.05f, false, skin);
+        sfxSlider.setValue(settings.sfxVolume);
+        sfxSlider.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.sfxVolume = sfxSlider.getValue();
+            }
+        });
+        soundTable.add(sfxSlider).width(200).row();
+
+        table.add(soundTable).center().padBottom(20).row();
+
+        // ----------------- PHẦN DISPLAY -----------------
+        Label displayHeader = new Label("DISPLAY", skin, "medium");
+        displayHeader.setColor(RED);
+        table.add(displayHeader).center().padBottom(10).row();
+
+        Table displayTable = new Table();
+
+        CheckBox trajectoryCb = new CheckBox(" Show Trajectory", skin);
+        trajectoryCb.setChecked(settings.showTrajectory);
+        trajectoryCb.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.showTrajectory = trajectoryCb.isChecked();
+            }
+        });
+        displayTable.add(trajectoryCb).center().padBottom(10).row();
+
+        CheckBox fpsCb = new CheckBox(" Show FPS Counter", skin);
+        fpsCb.setChecked(settings.showFPS);
+        fpsCb.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.showFPS = fpsCb.isChecked();
+            }
+        });
+        displayTable.add(fpsCb).center().padBottom(15).row();
+
+        // Display Mode
+        Table modeRow = new Table();
+        modeRow.add(new Label("Display Mode: ", skin, "small")).padRight(20);
+        String[] modes = { " DEFAULT ", " MAXIMIZED ", " FULLSCREEN " };
+        SelectBox<String> modeSelect = new SelectBox<>(skin);
+        modeSelect.setItems(modes);
+        modeSelect.setSelectedIndex(MathUtils.clamp(settings.displayMode, 0, modes.length - 1));
+        modeSelect.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.displayMode = modeSelect.getSelectedIndex();
+                applyDisplayMode(settings.displayMode);
+            }
+        });
+        modeRow.add(modeSelect).width(200);
+        displayTable.add(modeRow).center().row();
+
+        table.add(displayTable).center().padBottom(30).row();
 
         stage.addActor(table);
     }
@@ -296,9 +298,7 @@ public class SettingsScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        t += delta;
         ScreenUtils.clear(BG.r, BG.g, BG.b, 1);
-
         sr.setProjectionMatrix(stage.getCamera().combined);
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.10f, 0.10f, 0.23f, 1f);
@@ -319,28 +319,15 @@ public class SettingsScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
-
-        // Reload fonts and skin to scale with new resolution
         loadFonts();
         createSkin();
-
-        // Rebuild the UI table to use the new skin/fonts
         stage.clear();
         buildUI();
     }
 
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
-        dispose();
-    }
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() { dispose(); }
 
     @Override
     public void dispose() {
