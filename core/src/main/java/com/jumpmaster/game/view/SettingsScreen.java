@@ -307,13 +307,6 @@ public class SettingsScreen implements Screen {
 
         stage.act(delta);
         stage.draw();
-
-        if (GameSettings.getInstance().showFPS) {
-            batch.begin();
-            fontSmall.setColor(Color.WHITE);
-            fontSmall.draw(batch, Gdx.graphics.getFramesPerSecond() + " FPS", 10, Gdx.graphics.getHeight() - 10);
-            batch.end();
-        }
     }
 
     @Override
