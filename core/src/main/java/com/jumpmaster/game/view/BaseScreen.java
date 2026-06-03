@@ -80,7 +80,17 @@ public abstract class BaseScreen implements Screen {
 
     protected float highestY = 0f;
     protected float smoothCamY = 0f;
+
+    // ── 3.2.1.5 Idle Timer ──────────────────────────────────────────────────
+    // AF 3.2.2.1a: đếm ngược 30s khi ở màn GAME_OVER, không có input
     protected float idleTimer = 0f;
+    private static final float IDLE_TIMEOUT = 30f;
+
+    // ── 3.2.1.3a Game Over Delay (UC-3.2.4) ────────────────────────────────
+    // NFR: overlay chỉ xuất hiện sau 1 giây fade-in kể từ khi nhận game over
+    private float gameOverDelay    = 0f;
+    private static final float GAME_OVER_DELAY_MAX = 1.0f;
+    private boolean overlayVisible = false; // true khi delay đã đủ 1s
 
     protected boolean isPaused = false;
     protected GameplayUI gameplayUI;
@@ -347,7 +357,27 @@ public abstract class BaseScreen implements Screen {
         // overlay
         if (currentState == State.GAME_OVER) {
             updateInputProcessors();
-            gameOverOverlay.render();
+
+            // ── 3.2.1.3a Game Over Delay ────────────────────────────────
+            // Đếm đủ GAME_OVER_DELAY_MAX (1s) mới hiện overlay → đúng NFR
+            if (!overlayVisible) {
+                gameOverDelay += delta;
+                if (gameOverDelay >= GAME_OVER_DELAY_MAX) {
+                    overlayVisible = true;   // unlock overlay sau 1 giây
+                }
+            }
+
+            // ── 3.2.1.5 Idle Timer ──────────────────────────────────────
+            // AF 3.2.2.1a: chỉ đếm khi overlay đã hiện (người chơi đang xem)
+            if (overlayVisible) {
+                idleTimer += delta;
+                // AF 3.2.2.1b: tự động về menu sau IDLE_TIMEOUT giây không input
+                if (idleTimer >= IDLE_TIMEOUT) {
+                    goToMenu(); // 3.2.1.5a autoReturnMenu()
+                }
+                gameOverOverlay.render();
+            }
+
         } else if (isPaused) pauseOverlay.render();
         else {
             gameplayUI.update(scoreManager);
@@ -389,15 +419,31 @@ public abstract class BaseScreen implements Screen {
             return;
         currentState = State.GAME_OVER;
         updateInputProcessors();
-        idleTimer = 0;
+
+        // ── 3.2.1.2 stopPhysics ─────────────────────────────────────────
         player.body.setLinearVelocity(0, 0);
         if (inputHandler != null)
             inputHandler.reset();
 
-        // UC-3.3 AF3: Kiểm tra new record TRƯỚC khi flush, vì flush() sẽ update highScore
+        // ── 3.2.1.3a reset delay counter — bắt đầu đếm 1s fade-in ──────
+        gameOverDelay  = 0f;
+        overlayVisible = false;
+
+        // ── 3.2.1.5 reset idle timer — bắt đầu đếm 30s sau khi overlay hiện
+        idleTimer = 0f;
+
+        // ── 3.2.1.3 saveHighScore ────────────────────────────────────────
+        // UC-3.3 AF3: kiểm tra new record TRƯỚC khi flush
+        // vì flush() cập nhật highScore = currentScore
         boolean isNewRecord = scoreManager.getCurrentScore() > scoreManager.getHighScore();
         scoreManager.flush();
+
+        // ── 3.2.1.3b lấy stats phiên trước khi reset ────────────────────
+        int[] stats = scoreManager.getStats();
+
+        // ── 3.2.1.4 setData + setStats → GameOverOverlay ─────────────────
         gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(), isNewRecord);
+        gameOverOverlay.setStats(stats); // 3.2.1.4 hiển thị thống kê phiên
     }
 
     // -------------------------------------------------------
@@ -405,9 +451,15 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void restartGame() {
         Gdx.app.postRunnable(() -> {
-            currentState = State.RUNNING;
-            isPaused = false;
-            idleTimer = 0;
+            // ── 3.2.1.6a restartGame ────────────────────────────────────
+            currentState   = State.RUNNING;
+            isPaused       = false;
+
+            // reset tất cả timer liên quan game over
+            idleTimer      = 0f;  // 3.2.1.5 reset idle
+            gameOverDelay  = 0f;  // 3.2.1.3a reset delay
+            overlayVisible = false;
+
             highestY = 0;
             visitedPlatforms.clear();
             scoreManager.resetSession();
