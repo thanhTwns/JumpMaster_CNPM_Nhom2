@@ -20,7 +20,6 @@ public class GameplayUI {
     private Label scoreLabel;
     private Label comboLabel;
     private Label columnLabel;
-    private Label fpsLabel; // Khai báo fpsLabel ở đây
     private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
 
@@ -41,10 +40,6 @@ public class GameplayUI {
         comboLabel = new Label("", labelStyle);
         comboLabel.setColor(Color.YELLOW);
 
-        // Khởi tạo fpsLabel 1 lần duy nhất
-        fpsLabel = new Label("0 FPS", labelStyle);
-        fpsLabel.setVisible(GameSettings.getInstance().showFPS);
-
         // Bảng chứa điểm và FPS ở góc trái
         Table topTable = new Table();
         topTable.top().left();
@@ -52,7 +47,6 @@ public class GameplayUI {
         topTable.add(scoreLabel).pad(15).left().row();
         topTable.add(columnLabel).pad(15).left().row();
         topTable.add(comboLabel).pad(15).left().row();
-        topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
 
         // Bảng chứa nút Pause ở góc phải
         Table actionTable = new Table();
@@ -91,16 +85,9 @@ public class GameplayUI {
         } else {
             comboLabel.setText("");
         }
-
-        // Ẩn/hiện FPS tùy thuộc vào cài đặt
-        fpsLabel.setVisible(GameSettings.getInstance().showFPS);
     }
 
     public void render() {
-        if (GameSettings.getInstance().showFPS) {
-            fpsLabel.setText(Gdx.graphics.getFramesPerSecond() + " FPS");
-        }
-
         stage.act();
         stage.draw();
     }

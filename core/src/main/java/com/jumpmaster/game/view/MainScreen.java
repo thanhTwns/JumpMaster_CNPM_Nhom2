@@ -30,39 +30,31 @@ public class MainScreen implements Screen {
     private Texture iconTrophy;
     private Texture chickenTex;
 
-    // ── Canonical screen size — always updated in resize() ──────────────────
     private int screenW, screenH;
 
-    // Màu
     private static final Color BG       = new Color(0.05f, 0.05f, 0.10f, 1f);
     private static final Color RED      = new Color(0.91f, 0.27f, 0.37f, 1f);
     private static final Color PURPLE   = new Color(0.50f, 0.47f, 0.87f, 1f);
-    private static final Color DARK_BTN = new Color(0.08f, 0.08f, 0.18f, 0.92f);
-    private static final Color OVERLAY  = new Color(0f,    0f,    0f,    0.38f);
+    private static final Color DARK_BTN = new Color(0.12f, 0.12f, 0.25f, 0.85f);
     private static final Color WHITE    = new Color(Color.WHITE);
 
-    // Sao
     private static final int STAR_COUNT = 45;
     private float[] starX, starY, starPhase, starR;
 
-    // Cột nền
     private static final float[] COL_H = {90, 150, 65, 110, 170, 80, 130};
     private static final float   COL_W = 22f;
     private float[] colBaseX;
     private float   scrollX = 0;
 
-    // Nhân vật
     private float bobT = 0;
     private float t    = 0;
 
-    // Nút bấm
     private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores;
 
     public MainScreen(JumpMasterGame game) {
         this.game = game;
     }
 
-    // ── Called once when screen becomes active ───────────────────────────────
     @Override
     public void show() {
         batch  = new SpriteBatch();
@@ -76,126 +68,101 @@ public class MainScreen implements Screen {
         chickenTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconSettings.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconTrophy.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-
     }
 
-    // ── resize() is the single source of truth for W/H ──────────────────────
     @Override
     public void resize(int width, int height) {
         screenW = width;
         screenH = height;
-
-        // Sync projection matrices FIRST
         batch.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH);
         sr.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH);
-
-        // Rebuild fonts at new size (dispose old ones first)
         loadFonts();
-
-        // Rebuild layout-dependent positions
         setupButtons();
         initStars();
         initCols();
     }
 
-    // ── Font generation ──────────────────────────────────────────────────────
     private void loadFonts() {
-        if (fontLarge  != null) { fontLarge.dispose();  fontLarge  = null; }
-        if (fontMedium != null) { fontMedium.dispose(); fontMedium = null; }
-        if (fontSmall  != null) { fontSmall.dispose();  fontSmall  = null; }
+        if (fontLarge  != null) fontLarge.dispose();
+        if (fontMedium != null) fontMedium.dispose();
+        if (fontSmall  != null) fontSmall.dispose();
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
             Gdx.files.internal("font/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf"));
 
-        FreeTypeFontGenerator.FreeTypeFontParameter p =
-            new FreeTypeFontGenerator.FreeTypeFontParameter();
-
+        FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
         p.hinting    = FreeTypeFontGenerator.Hinting.Full;
         p.kerning    = true;
         p.genMipMaps = true;
         p.minFilter  = Texture.TextureFilter.MipMapLinearNearest;
         p.magFilter  = Texture.TextureFilter.Linear;
         float base = Math.min(screenW, screenH);
-        // Title
-        p.size        = Math.round(base * 0.1f);
-        p.color       = RED;
+
+        p.size = Math.round(base * 0.1f);
+        p.color = RED;
         p.borderWidth = 1.5f;
         p.borderColor = RED;
-        p.shadowOffsetX = 0; p.shadowOffsetY = -2;
-        p.shadowColor = new Color(0, 0, 0, 0.35f);
         fontLarge = generator.generateFont(p);
 
-        // Button labels
-        p.size        = Math.round(base * 0.060f);
-        p.color       = Color.WHITE;
+        p.size = Math.round(base * 0.060f);
+        p.color = Color.WHITE;
         p.borderWidth = 0f;
-        p.borderColor = null;
-        p.shadowOffsetX = 0; p.shadowOffsetY = -1;
-        p.shadowColor = new Color(0, 0, 0, 0.25f);
         fontMedium = generator.generateFont(p);
 
-        // Subtitles & icon labels
-        p.size        = Math.round(base * 0.038f);
-        p.color       = WHITE;
-        p.shadowOffsetX = 0; p.shadowOffsetY = 0;
+        p.size = Math.round(base * 0.038f);
+        p.color = WHITE;
         fontSmall = generator.generateFont(p);
 
         generator.dispose();
     }
 
-    // ── Layout helpers — all use screenW/screenH ─────────────────────────────
     private void initStars() {
-        starX     = new float[STAR_COUNT];
-        starY     = new float[STAR_COUNT];
-        starPhase = new float[STAR_COUNT];
-        starR     = new float[STAR_COUNT];
+        starX = new float[STAR_COUNT]; starY = new float[STAR_COUNT];
+        starPhase = new float[STAR_COUNT]; starR = new float[STAR_COUNT];
         for (int i = 0; i < STAR_COUNT; i++) {
-            starX[i]     = MathUtils.random(0f, screenW);
-            starY[i]     = MathUtils.random(screenH * 0.25f, screenH);
+            starX[i] = MathUtils.random(0f, screenW);
+            starY[i] = MathUtils.random(screenH * 0.25f, screenH);
             starPhase[i] = MathUtils.random(0f, MathUtils.PI2);
-            starR[i]     = MathUtils.random(0.8f, 2f);
+            starR[i] = MathUtils.random(0.8f, 2f);
         }
     }
 
     private void initCols() {
         colBaseX = new float[COL_H.length];
         float spacing = screenW / (COL_H.length - 1f);
-        for (int i = 0; i < COL_H.length; i++) {
-            colBaseX[i] = i * spacing;
-        }
+        for (int i = 0; i < COL_H.length; i++) colBaseX[i] = i * spacing;
     }
 
     private void setupButtons() {
-        float W  = screenW, H = screenH;
-        float btnW    = W * 0.68f;
-        float btnH    = H * 0.085f;
-        float centerX = (W - btnW) / 2f;
-        float startY  = H * 0.50f;
-        float gap     = btnH + H * 0.018f;
+        float W = screenW, H = screenH;
+        float btnH = H * 0.085f;
+        float startY = H * 0.45f, gap = btnH + H * 0.02f;
 
-        btnClassic    = new Rectangle(centerX, startY,         btnW, btnH);
-        btnTimeAttack = new Rectangle(centerX, startY - gap,   btnW, btnH);
-        btnChallenge  = new Rectangle(centerX, startY - gap*2, btnW, btnH);
+        // Tìm chiều rộng lớn nhất để các nút bằng nhau
+        float maxW = 0;
+        layout.setText(fontMedium, "CLASSIC");
+        maxW = Math.max(maxW, layout.width);
+        layout.setText(fontMedium, "TIME ATTACK");
+        maxW = Math.max(maxW, layout.width);
+        layout.setText(fontMedium, "CHALLENGE");
+        maxW = Math.max(maxW, layout.width);
 
-        float iconSize = H * 0.09f;
-        float iconY    = startY - gap*2 - iconSize - H * 0.035f;
-        float iconGap  = W * 0.09f;
+        float btnW = maxW + 200; // Làm nút dài thêm (trước đó là 150)
+
+        btnClassic = new Rectangle((W - btnW) / 2f, startY, btnW, btnH);
+        btnTimeAttack = new Rectangle((W - btnW) / 2f, startY - gap, btnW, btnH);
+        btnChallenge = new Rectangle((W - btnW) / 2f, startY - gap*2, btnW, btnH);
+
+        float iconSize = H * 0.09f, iconY = startY - gap*2 - iconSize - H * 0.04f, iconGap = W * 0.09f;
         btnSettings = new Rectangle(W/2f - iconSize - iconGap, iconY, iconSize, iconSize);
-        btnScores   = new Rectangle(W/2f + iconGap,            iconY, iconSize, iconSize);
+        btnScores   = new Rectangle(W/2f + iconGap, iconY, iconSize, iconSize);
     }
 
-    // ── Render ───────────────────────────────────────────────────────────────
     @Override
     public void render(float delta) {
-        // Guard: fonts not ready yet (resize not called)
         if (fontLarge == null) return;
-
-        t       += delta;
-        bobT    += delta;
-        scrollX -= delta * 60f;
-
+        t += delta; bobT += delta; scrollX -= delta * 60f;
         if (scrollX < -(screenW / (float) COL_H.length + COL_W)) scrollX = 0;
-
         handleInput();
 
         Gdx.gl.glClearColor(BG.r, BG.g, BG.b, 1f);
@@ -203,12 +170,11 @@ public class MainScreen implements Screen {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // All ShapeRenderer draws first
         drawStars();
         drawGround();
         drawColumns();
+        drawButtonBackgrounds();
 
-        // All batch draws after
         batch.begin();
         drawCharacter();
         drawIcons();
@@ -216,7 +182,6 @@ public class MainScreen implements Screen {
         batch.end();
     }
 
-    // ── Draw helpers ─────────────────────────────────────────────────────────
     private void drawStars() {
         sr.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < STAR_COUNT; i++) {
@@ -228,147 +193,108 @@ public class MainScreen implements Screen {
     }
 
     private void drawGround() {
-        float W = screenW, H = screenH;
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.10f, 0.10f, 0.23f, 1f);
-        sr.rect(0, 0, W, H * 0.13f);
+        sr.rect(0, 0, screenW, screenH * 0.13f);
         sr.setColor(0.13f, 0.13f, 0.28f, 1f);
-        sr.rect(0, H * 0.13f, W, 2f);
+        sr.rect(0, screenH * 0.13f, screenW, 2f);
         sr.end();
     }
 
     private void drawColumns() {
-        float W       = screenW, H = screenH;
-        float groundH = H * 0.13f;
-        float scale   = H / 600f;
-
+        float groundH = screenH * 0.13f, scale = screenH / 600f;
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(RED);
         for (int i = 0; i < COL_H.length; i++) {
-            float x    = colBaseX[i] + scrollX;
-            float colH = COL_H[i] * scale;
-            while (x < -COL_W) x += W + COL_W;
-            while (x > W)      x -= W + COL_W;
-            sr.rect(x, groundH, COL_W, colH);
+            float x = colBaseX[i] + scrollX;
+            float h = COL_H[i] * scale;
+            while (x < -COL_W) x += screenW + COL_W;
+            while (x > screenW) x -= screenW + COL_W;
+            sr.rect(x, groundH, COL_W, h);
+        }
+        sr.end();
+    }
+
+    private void drawButtonBackgrounds() {
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        Rectangle[] buttons = {btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores};
+        for (Rectangle r : buttons) {
+            sr.setColor(0, 0, 0, 0.4f);
+            sr.rect(r.x + 4, r.y - 4, r.width, r.height);
+            sr.setColor(PURPLE);
+            sr.rect(r.x - 4, r.y - 4, r.width + 8, r.height + 8);
+            sr.setColor(DARK_BTN);
+            sr.rect(r.x, r.y, r.width, r.height);
+            sr.setColor(1, 1, 1, 0.08f);
+            sr.rect(r.x, r.y + r.height * 0.5f, r.width, r.height * 0.5f);
         }
         sr.end();
     }
 
     private void drawCharacter() {
-        float W       = screenW, H = screenH;
-        float groundH = H * 0.13f;
-        float size    = H * 0.12f;
-        float cx      = W / 2f;
-        float cy      = groundH + MathUtils.sin(bobT * 2.5f) * H * 0.018f;
-
+        float groundH = screenH * 0.13f, size = screenH * 0.12f;
+        float cy = groundH + MathUtils.sin(bobT * 2.5f) * screenH * 0.018f;
         batch.setColor(Color.WHITE);
-        batch.draw(chickenTex, cx - size / 2f, cy, size, size);
+        batch.draw(chickenTex, screenW / 2f - size / 2f, cy, size, size);
     }
 
     private void drawIcons() {
-        float r   = btnSettings.width / 2f;
-        float pad = r * 0.28f;
-
+        float pad = btnSettings.width * 0.14f;
         batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE);
-        batch.setColor(1f, 1f, 1f, 1f);
-
-        batch.draw(iconSettings,
-            btnSettings.x + pad, btnSettings.y + pad,
-            btnSettings.width - pad*2, btnSettings.height - pad*2);
-
-        batch.draw(iconTrophy,
-            btnScores.x + pad, btnScores.y + pad,
-            btnScores.width - pad*2, btnScores.height - pad*2);
-
-        // Restore normal blending
+        batch.draw(iconSettings, btnSettings.x + pad, btnSettings.y + pad, btnSettings.width - pad*2, btnSettings.height - pad*2);
+        batch.draw(iconTrophy, btnScores.x + pad, btnScores.y + pad, btnScores.width - pad*2, btnScores.height - pad*2);
         batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        batch.setColor(Color.WHITE);
     }
 
     private void drawText() {
-        float W = screenW, H = screenH;
-
-        // JUMPMASTER
-        float titleY = H * 0.92f;
+        float titleY = screenH * 0.92f;
         fontLarge.setColor(RED);
         layout.setText(fontLarge, "JUMPMASTER");
-        fontLarge.draw(batch, layout, (W - layout.width) / 2f, titleY);
+        float titleW = layout.width;
+        float titleH = layout.height;
+        fontLarge.draw(batch, layout, (screenW - titleW) / 2f, titleY);
 
-        // Subtitle
-        float subY = titleY - layout.height - H * 0.02f;
-        final String sub = "DRAG TO SHOOT";
         fontSmall.setColor(WHITE);
-        layout.setText(fontSmall, sub);
-        fontSmall.draw(batch, layout, (W - layout.width) / 2f, subY);
+        layout.setText(fontSmall, "DRAG TO SHOOT");
+        // Đặt sát ngay dưới JUMPMASTER
+        fontSmall.draw(batch, layout, (screenW - layout.width) / 2f, titleY - titleH - 15);
 
-        // Mode label
-        final String chooseLbl = "SELECT GAME MODE";
-        fontSmall.setColor(WHITE);
-        layout.setText(fontSmall, chooseLbl);
-        fontSmall.draw(batch, layout,
-            (W - layout.width) / 2f,
-            btnClassic.y + btnClassic.height + H * 0.05f);
+        layout.setText(fontSmall, "SELECT GAME MODE");
+        fontSmall.draw(batch, layout, (screenW - layout.width) / 2f, btnClassic.y + btnClassic.height + screenH * 0.05f);
 
-        // Button text
-        fontMedium.setColor(Color.WHITE);
-        drawCenteredText(fontMedium, "CLASSIC", btnClassic);
+        fontMedium.setColor(Color.WHITE); drawCenteredText(fontMedium, "CLASSIC", btnClassic);
+        fontMedium.setColor(RED); drawCenteredText(fontMedium, "TIME ATTACK", btnTimeAttack);
+        fontMedium.setColor(new Color(0.68f, 0.62f, 1f, 1f)); drawCenteredText(fontMedium, "CHALLENGE", btnChallenge);
 
-        fontMedium.setColor(RED);
-        drawCenteredText(fontMedium, "TIME ATTACK", btnTimeAttack);
-
-        fontMedium.setColor(new Color(0.68f, 0.62f, 1f, 1f));
-        drawCenteredText(fontMedium, "CHALLENGE", btnChallenge);
-
-        // Icon labels
         float labelY = btnSettings.y - fontSmall.getLineHeight() * 1.2f;
-
-        fontSmall.setColor(WHITE);
         layout.setText(fontSmall, "SETTINGS");
-        fontSmall.draw(batch, layout,
-            btnSettings.x + (btnSettings.width - layout.width) / 2f, labelY);
-
+        fontSmall.draw(batch, layout, btnSettings.x + (btnSettings.width - layout.width) / 2f, labelY);
         layout.setText(fontSmall, "SCORES");
-        fontSmall.draw(batch, layout,
-            btnScores.x + (btnScores.width - layout.width) / 2f, labelY);
+        fontSmall.draw(batch, layout, btnScores.x + (btnScores.width - layout.width) / 2f, labelY);
     }
 
     private void drawCenteredText(BitmapFont f, String text, Rectangle btn) {
         layout.setText(f, text);
-        f.draw(batch, layout,
-            btn.x + (btn.width  - layout.width)  / 2f,
-            btn.y + (btn.height + layout.height)  / 2f);
+        f.draw(batch, layout, btn.x + (btn.width - layout.width) / 2f, btn.y + (btn.height + layout.height) / 2f);
     }
 
-    // ── Input ────────────────────────────────────────────────────────────────
     private void handleInput() {
         if (!Gdx.input.justTouched()) return;
-        float tx = Gdx.input.getX();
-        float ty = screenH - Gdx.input.getY();
-
-        if (btnClassic.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "classic"));
-        else if (btnTimeAttack.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "time_attack"));
-        else if (btnChallenge.contains(tx, ty))
-            game.setScreen(new GameScreen(game, "challenge"));
-        else if (btnSettings.contains(tx, ty))
-            game.setScreen(new SettingsScreen(game));
+        float tx = Gdx.input.getX(), ty = screenH - Gdx.input.getY();
+        if (btnClassic.contains(tx, ty)) game.setScreen(new GameScreen(game, "classic"));
+        else if (btnTimeAttack.contains(tx, ty)) game.setScreen(new GameScreen(game, "time_attack"));
+        else if (btnChallenge.contains(tx, ty)) game.setScreen(new GameScreen(game, "challenge"));
+        else if (btnSettings.contains(tx, ty)) game.setScreen(new SettingsScreen(game));
     }
 
-    // ── Lifecycle ────────────────────────────────────────────────────────────
-    @Override public void pause()  {}
+    @Override public void pause() {}
     @Override public void resume() {}
-    @Override public void hide()   {}
-
-    @Override
-    public void dispose() {
-        batch.dispose();
-        sr.dispose();
-        if (fontLarge  != null) fontLarge.dispose();
+    @Override public void hide() {}
+    @Override public void dispose() {
+        batch.dispose(); sr.dispose();
+        if (fontLarge != null) fontLarge.dispose();
         if (fontMedium != null) fontMedium.dispose();
         if (fontSmall  != null) fontSmall.dispose();
-        iconSettings.dispose();
-        iconTrophy.dispose();
-        chickenTex.dispose();
+        iconSettings.dispose(); iconTrophy.dispose(); chickenTex.dispose();
     }
 }

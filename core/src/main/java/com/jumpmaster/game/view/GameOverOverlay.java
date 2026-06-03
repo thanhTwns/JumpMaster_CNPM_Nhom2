@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -20,7 +21,11 @@ public class GameOverOverlay {
     private Label scoreLabel, highScoreLabel, recordLabel;
     // ── 3.2.1.3b Stats labels ────────────────────────────────────────────────
     private Label columnsLabel, maxComboLabel, timeLabel;
-    private final Texture backgroundTexture;
+    private Texture backgroundTexture;
+    private Skin skin;
+
+    private static final Color PURPLE   = new Color(0.50f, 0.47f, 0.87f, 1f);
+    private static final Color DARK_BTN = new Color(0.12f, 0.12f, 0.25f, 0.95f);
 
     public interface GameOverListener {
         void onRestart();
@@ -29,13 +34,25 @@ public class GameOverOverlay {
 
     public GameOverOverlay(SpriteBatch batch, final GameOverListener listener) {
         stage = new Stage(new FitViewport(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT), batch);
+        skin = new Skin();
 
-        // Tạo nền mờ
+        // Tạo nền mờ cho toàn màn hình
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(0, 0, 0, 0.75f);
         pixmap.fill();
         backgroundTexture = new Texture(pixmap);
         pixmap.dispose();
+
+        // Tạo Texture cho nút bấm có khung (Border)
+        Pixmap btnPixmap = new Pixmap(350, 80, Pixmap.Format.RGBA8888);
+        // Vẽ viền ngoài màu tím
+        btnPixmap.setColor(PURPLE);
+        btnPixmap.fill();
+        // Vẽ nền nút bên trong màu tối (để lại viền 3px)
+        btnPixmap.setColor(DARK_BTN);
+        btnPixmap.fillRectangle(3, 3, 344, 74);
+        skin.add("button_bg", new Texture(btnPixmap));
+        btnPixmap.dispose();
 
         Table table = new Table();
         table.setFillParent(true);
@@ -49,14 +66,20 @@ public class GameOverOverlay {
 
         Label.LabelStyle titleStyle = new Label.LabelStyle(font, Color.RED);
         Label.LabelStyle scoreStyle = new Label.LabelStyle(font, Color.WHITE);
+
         TextButton.TextButtonStyle btnStyle = new TextButton.TextButtonStyle();
+        btnStyle.up = skin.newDrawable("button_bg");
         btnStyle.font = font;
         btnStyle.fontColor = Color.YELLOW;
+        btnStyle.overFontColor = Color.WHITE;
+        btnStyle.downFontColor = Color.GRAY;
 
         Label title = new Label("GAME OVER", titleStyle);
-        scoreLabel     = new Label("Score: 0",    scoreStyle);
-        highScoreLabel = new Label("Best: 0",     scoreStyle);
-        recordLabel    = new Label("NEW RECORD!", new Label.LabelStyle(font, Color.GREEN));
+        title.setFontScale(1.5f);
+
+        scoreLabel = new Label("Score: 0", scoreStyle);
+        highScoreLabel = new Label("Best: 0", scoreStyle);
+        recordLabel = new Label("NEW RECORD!", new Label.LabelStyle(font, Color.GREEN));
         recordLabel.setVisible(false);
 
         // ── 3.2.1.3b Stats labels — dùng font nhỏ hơn để vừa màn hình ───
@@ -68,7 +91,7 @@ public class GameOverOverlay {
         timeLabel     = new Label("Time: 0s",      statsStyle);
 
         TextButton btnRestart = new TextButton("RESTART", btnStyle);
-        TextButton btnMenu    = new TextButton("MENU",    btnStyle);
+        TextButton btnMenu = new TextButton("MENU", btnStyle);
 
         btnRestart.addListener(new ClickListener() {
             @Override
@@ -80,6 +103,11 @@ public class GameOverOverlay {
             public void clicked(InputEvent event, float x, float y) { listener.onMenu(); }
         });
 
+        // --- LAYOUT----
+        table.add(title).padBottom(40).row();
+        table.add(scoreLabel).padBottom(5).row();
+        table.add(highScoreLabel).padBottom(5).row();
+        table.add(recordLabel).padBottom(30).row();
         // --- LAYOUT ---
         table.add(title).padBottom(10).row();
         table.add(scoreLabel).padBottom(2).row();
@@ -132,6 +160,7 @@ public class GameOverOverlay {
 
     public void dispose() {
         stage.dispose();
+        skin.dispose();
         backgroundTexture.dispose();
     }
 }
