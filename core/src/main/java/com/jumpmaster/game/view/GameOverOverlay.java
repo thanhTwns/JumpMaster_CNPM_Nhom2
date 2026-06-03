@@ -103,11 +103,6 @@ public class GameOverOverlay {
             public void clicked(InputEvent event, float x, float y) { listener.onMenu(); }
         });
 
-        // --- LAYOUT----
-        table.add(title).padBottom(40).row();
-        table.add(scoreLabel).padBottom(5).row();
-        table.add(highScoreLabel).padBottom(5).row();
-        table.add(recordLabel).padBottom(30).row();
         // --- LAYOUT ---
         table.add(title).padBottom(10).row();
         table.add(scoreLabel).padBottom(2).row();
