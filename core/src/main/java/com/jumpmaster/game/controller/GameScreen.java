@@ -98,11 +98,12 @@ public class GameScreen implements Screen {
     private float   camAtDragY    = 0f;
 
     // Kích thước & vị trí nút "Map View" / "← Back" — toạ độ screen pixels
-    // tính từ góc trên-trái (Y = 0 là đỉnh màn hình)
-    private static final float BTN_W  = 100f;
-    private static final float BTN_H  = 32f;
-    private static final float BTN_X  = 20f;   // cách mép trái
-    private static final float BTN_Y  = 48f;   // cách mép trên
+    // Góc trên-PHẢI, nhưng dịch xuống dưới nút Pause (~50px) để không đè nhau.
+    // Pause button dùng pad(15) → chiếm ~50px từ mép trên.
+    private static final float BTN_W          = 100f;
+    private static final float BTN_H          = 32f;
+    private static final float BTN_MARGIN     = 20f;   // cách mép phải
+    private static final float BTN_Y_FROM_TOP = 70f;   // cách mép trên (dưới nút Pause)
 
     // ─────────────────────────────────────────────────────────────────────
     //  Constructors
@@ -435,12 +436,13 @@ public class GameScreen implements Screen {
      * screenX/Y là toạ độ màn hình thực (gốc trên-trái).
      */
     private boolean isTapOnMapButton(int screenX, int screenY) {
-        float screenH = Gdx.graphics.getHeight();
-        // Chuyển Y: LibGDX screenY gốc trên-trái, nút vẽ từ góc trên-trái
-        return screenX >= BTN_X
-            && screenX <= BTN_X + BTN_W
-            && screenY >= BTN_Y
-            && screenY <= BTN_Y + BTN_H;
+        float sw   = Gdx.graphics.getWidth();
+        float btnX = sw - BTN_MARGIN - BTN_W;
+        // screenY gốc trên-trái, nút cách mép trên BTN_Y_FROM_TOP
+        return screenX >= btnX
+            && screenX <= btnX + BTN_W
+            && screenY >= BTN_Y_FROM_TOP
+            && screenY <= BTN_Y_FROM_TOP + BTN_H;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -686,8 +688,8 @@ public class GameScreen implements Screen {
         heightPct = MathUtils.clamp(heightPct, 0, 100);
         uiFont.draw(game.batch,
             "MAP VIEW  |  kéo để cuộn  |  scroll wheel lên/xuống  |  cao: " + heightPct + "%",
-            BTN_X + BTN_W + 16f,
-            sh - BTN_Y - 8f);
+            BTN_MARGIN,
+            sh - BTN_Y_FROM_TOP - BTN_H + (BTN_H / 2f));
 
         // Mũi tên chỉ vị trí player (luôn hiện dù camera đang ở đâu)
         drawPlayerIndicator(screenOrtho, sw, sh);
@@ -755,9 +757,11 @@ public class GameScreen implements Screen {
     private void drawMapViewButton() {
         float sw = Gdx.graphics.getWidth();
         float sh = Gdx.graphics.getHeight();
-        // LibGDX screen Y=0 ở dưới, nhưng input screenY=0 ở trên.
-        // Để vẽ ở góc trên-trái: y = sh - BTN_Y - BTN_H
-        float btnDrawY = sh - BTN_Y - BTN_H;
+
+        // Góc trên-phải, dưới nút Pause
+        float btnX     = sw - BTN_MARGIN - BTN_W;
+        // LibGDX vẽ Y từ dưới lên: chuyển từ "cách mép trên BTN_Y_FROM_TOP"
+        float btnDrawY = sh - BTN_Y_FROM_TOP - BTN_H;
 
         Matrix4 screenOrtho = new Matrix4().setToOrtho2D(0, 0, sw, sh);
 
@@ -765,17 +769,17 @@ public class GameScreen implements Screen {
         shapeRenderer.setProjectionMatrix(screenOrtho);
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         if (isMapView) {
-            shapeRenderer.setColor(0.1f, 0.5f, 1f, 0.92f);   // xanh lam khi đang Map View
+            shapeRenderer.setColor(0.1f, 0.5f, 1f, 0.92f);
         } else {
-            shapeRenderer.setColor(0f, 0f, 0f, 0.65f);        // đen mờ khi bình thường
+            shapeRenderer.setColor(0f, 0f, 0f, 0.65f);
         }
-        shapeRenderer.rect(BTN_X, btnDrawY, BTN_W, BTN_H);
+        shapeRenderer.rect(btnX, btnDrawY, BTN_W, BTN_H);
         shapeRenderer.end();
 
         // Viền nút
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(isMapView ? Color.CYAN : Color.WHITE);
-        shapeRenderer.rect(BTN_X, btnDrawY, BTN_W, BTN_H);
+        shapeRenderer.rect(btnX, btnDrawY, BTN_W, BTN_H);
         shapeRenderer.end();
 
         // Text nút
@@ -785,7 +789,7 @@ public class GameScreen implements Screen {
         String label = isMapView ? "< Back" : "Map View";
         GlyphLayout layout = new GlyphLayout(uiFont, label);
         uiFont.draw(game.batch, label,
-            BTN_X + (BTN_W - layout.width)  / 2f,
+            btnX + (BTN_W - layout.width)  / 2f,
             btnDrawY + (BTN_H + layout.height) / 2f);
         game.batch.end();
     }
