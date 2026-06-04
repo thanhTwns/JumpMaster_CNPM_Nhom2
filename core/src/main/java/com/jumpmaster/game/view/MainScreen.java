@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.utils.Align;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.controller.GameScreen;
 
@@ -55,6 +56,20 @@ public class MainScreen implements Screen {
         this.game = game;
     }
 
+    //
+
+    private static final String DESC_CLASSIC =
+        "CHE DO CO DIEN:\n- Nhay len cac platform cao nhat." +
+            "\n- Khong gioi han thoi gian.";
+    private static final String DESC_TIME_ATTACK =
+        "CHE DO TIME ATTACK:\n- Thoi gian gioi han: 60 giay." +
+            "\n- Tieu diet quai doi va thu thap binh mau de sinh ton." +
+            "\n- Cham vao cong Portal de qua man nhanh nhat.";
+    private boolean isShowingPopup = false;
+    private com.badlogic.gdx.math.Rectangle btnXacNhan;
+    private String popupText = "";
+    private String selectedModeTag = "";
+    private ShapeRenderer shapeRenderer;
     @Override
     public void show() {
         batch  = new SpriteBatch();
@@ -68,6 +83,14 @@ public class MainScreen implements Screen {
         chickenTex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconSettings.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconTrophy.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        shapeRenderer = new ShapeRenderer();
+        //bổ sung nút xác nhận
+        float btnW = 220f;
+        float btnH = 60f;
+
+        btnXacNhan = new com.badlogic.gdx.math.Rectangle(
+            (screenW - btnW) / 2, (screenH / 2) - 120, btnW, btnH);
     }
 
     @Override
@@ -80,6 +103,21 @@ public class MainScreen implements Screen {
         setupButtons();
         initStars();
         initCols();
+
+        float popupW = screenW * 0.75f;
+        float popupH = screenH * 0.55f;
+        float popupX = (screenW - popupW) / 2;
+        float popupY = (screenH - popupH) / 2;
+
+        float btnW = 220;
+        float btnH = 60;
+
+        btnXacNhan = new Rectangle(
+            popupX + popupW / 2 - btnW / 2,
+            popupY + 20,
+            btnW,
+            btnH
+        );
     }
 
     private void loadFonts() {
@@ -180,6 +218,66 @@ public class MainScreen implements Screen {
         drawIcons();
         drawText();
         batch.end();
+
+        //popup hiển thị luật chơi
+        if (isShowingPopup) {
+
+            // nền tối phía sau
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+            shapeRenderer.setColor(0, 0, 0, 0.7f);
+            shapeRenderer.rect(0, 0, screenW, screenH);
+
+            // khung popup
+            float popupW = screenW * 0.75f;
+            float popupH = screenH * 0.55f;
+            float popupX = (screenW - popupW) / 2;
+            float popupY = (screenH - popupH) / 2;
+
+            shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 1);
+            shapeRenderer.rect(popupX, popupY, popupW, popupH);
+
+            // viền vàng
+            shapeRenderer.setColor(1f, 0.8f, 0.2f, 1);
+            shapeRenderer.rectLine(
+                popupX, popupY,
+                popupX + popupW, popupY,
+                4);
+
+            shapeRenderer.rectLine(
+                popupX, popupY + popupH,
+                popupX + popupW, popupY + popupH,
+                4);
+
+            shapeRenderer.end();
+            batch.begin();
+
+            // tiêu đề
+            fontMedium.draw(batch,
+                "=== LUAT CHOI ===",
+                popupX + 40,
+                popupY + popupH - 40);
+
+            // nội dung
+            fontSmall.draw(batch,
+                popupText,
+                popupX + 40,
+                popupY + popupH - 100,
+                popupW - 80,
+                Align.left,
+                true);
+
+            // nút xác nhận
+            fontMedium.draw(batch,
+                "[ BAT DAU ]",
+                btnXacNhan.x + 20,
+                btnXacNhan.y + 40);
+
+            batch.end();
+        }
+
+
+
+
     }
 
     private void drawStars() {
@@ -281,10 +379,53 @@ public class MainScreen implements Screen {
     private void handleInput() {
         if (!Gdx.input.justTouched()) return;
         float tx = Gdx.input.getX(), ty = screenH - Gdx.input.getY();
-        if (btnClassic.contains(tx, ty)) game.setScreen(new GameScreen(game, "classic"));
-        else if (btnTimeAttack.contains(tx, ty)) game.setScreen(new GameScreen(game, "time_attack"));
-        else if (btnChallenge.contains(tx, ty)) game.setScreen(new GameScreen(game, "challenge"));
-        else if (btnSettings.contains(tx, ty)) game.setScreen(new SettingsScreen(game));
+
+        // TRƯỜNG HỢP 1: Popup luật chơi đang mở -> Chỉ xử lý nút Xác nhận
+        if (isShowingPopup) {
+            if (btnXacNhan.contains(tx, ty)) {
+                Gdx.app.log("SystemLog", "XAC NHAN HOP LE: Bat dau van choi " + selectedModeTag);
+                isShowingPopup = false; // Tắt trạng thái popup
+
+                // Thực hiện chuyển màn hình chơi thực sự sang GameScreen
+                game.setScreen(new GameScreen(game, selectedModeTag));
+            }
+            return; // Khóa toàn bộ các tương tác menu bên dưới lại
+        }
+
+        // TRƯỜNG HỢP 2: Menu chính bình thường
+        if (btnClassic.contains(tx, ty)) {
+            // Nạp cấu hình chế độ Classic vào Preferences
+            com.badlogic.gdx.Preferences prefs = Gdx.app.getPreferences("GameConfig");
+            prefs.putString("current_mode", "MODE_CLASSIC");
+            prefs.putFloat("initial_score", 0f);
+            prefs.putFloat("time_limit", -1f);
+            prefs.flush();
+
+            // Cấu hình dữ liệu hiển thị lên Popup
+            popupText = DESC_CLASSIC;
+            selectedModeTag = "classic";
+            isShowingPopup = true; // Bật Popup lên
+        }
+        else if (btnTimeAttack.contains(tx, ty)) {
+            // Nạp cấu hình chế độ Time Attack vào Preferences
+            com.badlogic.gdx.Preferences prefs = Gdx.app.getPreferences("GameConfig");
+            prefs.putString("current_mode", "MODE_TIME_ATTACK");
+            prefs.putFloat("initial_score", 0f);
+            prefs.putFloat("time_limit", 60f);
+            prefs.flush();
+
+            // Cấu hình dữ liệu hiển thị lên Popup
+            popupText = DESC_TIME_ATTACK;
+            selectedModeTag = "time_attack";
+            isShowingPopup = true; // Bật Popup lên
+        }
+        else if (btnChallenge.contains(tx, ty)) {
+            Gdx.app.log("SystemLog", "CHE DO DANG PHAT TRIEN: Vui long chon che do khac!");
+            Gdx.app.log("SystemLog", "LOI: Che do choi khong hop le hoac chua hoan thien!");
+        }
+        else if (btnSettings.contains(tx, ty)) {
+            game.setScreen(new SettingsScreen(game));
+        }
     }
 
     @Override public void pause() {}
@@ -296,5 +437,52 @@ public class MainScreen implements Screen {
         if (fontMedium != null) fontMedium.dispose();
         if (fontSmall  != null) fontSmall.dispose();
         iconSettings.dispose(); iconTrophy.dispose(); chickenTex.dispose();
+    }
+    /**
+     * Thực hiện chuỗi nghiệp vụ từ Bước 3 đến Bước 7 theo đúng đặc tả thiết kế
+     * @param selectedMode Chế độ người chơi nhấp chọn ("classic", "time_attack", hoặc "challenge")
+     * @return true nếu chế độ hợp lệ và nạp thông số thành công, false nếu bị từ chối
+     */
+    private boolean validateAndSetupGameMode(String selectedMode) {
+
+        // --- BƯỚC 3: Hệ thống hiển thị thông tin mô tả và luật chơi của chế độ đã chọn ---
+        String infoMessage = "";
+        if ("classic".equalsIgnoreCase(selectedMode)) {
+            infoMessage = DESC_CLASSIC;
+        } else if ("time_attack".equalsIgnoreCase(selectedMode)) {
+            infoMessage = DESC_TIME_ATTACK;
+        } else {
+            infoMessage = "CHE DO DANG PHAT TRIEN: Vui long chon che do choi khac!";
+        }
+
+        // In thông tin đặc tả luật chơi ra Logcat hệ thống để kiểm tra nghiệp vụ
+        Gdx.app.log("SystemLog", infoMessage);
+
+        // --- BƯỚC 4: Người chơi xác nhận lựa chọn ---
+        // (Bước này được ghi nhận khi hàm xử lý phản hồi thành công)
+
+        // --- BƯỚC 5: Hệ thống kiểm tra tính hợp lệ của chế độ chơi được chọn ---
+        // "Challenge" được coi là [Chế độ đang phát triển] nên hệ thống sẽ chặn lại, không cho vào chơi
+        if (!"classic".equalsIgnoreCase(selectedMode) && !"time_attack".equalsIgnoreCase(selectedMode)) {
+            Gdx.app.log("SystemLog", "LOI: Che do choi khong hop le hoac chua hoan thien!");
+            return false; // Trả về thất bại, chặn đứng không chuyển màn hình
+        }
+
+        // --- BƯỚC 6 & 7: Hệ thống tải cấu hình và khởi tạo các tham số ván chơi ban đầu ---
+        com.badlogic.gdx.Preferences prefs = Gdx.app.getPreferences("GameConfig");
+
+        if ("classic".equalsIgnoreCase(selectedMode)) {
+            prefs.putString("current_mode", "MODE_CLASSIC");
+            prefs.putFloat("initial_score", 0f);
+            prefs.putFloat("time_limit", -1f); // Classic không giới hạn thời gian
+        } else if ("time_attack".equalsIgnoreCase(selectedMode)) {
+            prefs.putString("current_mode", "MODE_TIME_ATTACK");
+            prefs.putFloat("initial_score", 0f);
+            prefs.putFloat("time_limit", 60f); // Thiết lập luật chơi giới hạn thời gian 60 giây
+        }
+        prefs.flush(); // Đồng bộ ghi dữ liệu cấu hình xuống thiết bị bộ nhớ tạm
+
+        Gdx.app.log("SystemLog", "XAC NHAN HOP LE: Da thiet lap xong tham so ván choi cho: " + selectedMode);
+        return true; // Hợp lệ hoàn toàn, cho đi tiếp
     }
 }
