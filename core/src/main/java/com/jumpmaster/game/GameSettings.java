@@ -19,7 +19,7 @@ public class GameSettings {
 
     public float musicVolume = 0.5f;
     public float sfxVolume = 0.8f;
-    public boolean showTrajectory = true;
+    public boolean showTrajectory = false;
     public boolean showFPS = false;
     public int displayMode = MODE_DEFAULT;
 
@@ -57,9 +57,7 @@ public class GameSettings {
         prefs.flush();
     }
 
-    /**
-     * Áp dụng cài đặt màn hình hiện tại lên cửa sổ game.
-     */
+    // set mode màn hình trước khi khởi tạo game
     public void applyDisplayMode() {
         if (displayMode == MODE_DEFAULT) {
             Gdx.graphics.setWindowedMode(1200, 720);

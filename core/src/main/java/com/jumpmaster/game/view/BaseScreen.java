@@ -10,6 +10,11 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
@@ -20,6 +25,9 @@ import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
 import com.jumpmaster.game.utils.Constants;
 import com.jumpmaster.game.utils.ScoreManager;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * BaseScreen — abstract class chứa toàn bộ logic CHUNG giữa GameScreen và
@@ -76,6 +84,7 @@ public abstract class BaseScreen implements Screen {
     protected Array<Platform> platforms;
 
     protected float highestY = 0f;
+    protected float currentPlatformY = 0f;
     protected float smoothCamY = 0f;
     protected float idleTimer = 0f;
 
@@ -85,6 +94,7 @@ public abstract class BaseScreen implements Screen {
     protected GameOverOverlay gameOverOverlay;
     protected InputMultiplexer multiplexer;
     protected ScoreManager scoreManager;
+    protected Set<Body> visitedPlatforms = new HashSet<>();
 
     protected static final float DEATH_Y = -0.5f;
 
@@ -171,6 +181,36 @@ public abstract class BaseScreen implements Screen {
                 Constants.VIEWPORT_HEIGHT / Constants.PPM,
                 camera);
         world = new World(new Vector2(0, Constants.GRAVITY), true);
+
+        world.setContactListener(new ContactListener() {
+            @Override
+            public void beginContact(Contact contact) {
+                Object dataA = contact.getFixtureA().getUserData();
+                Object dataB = contact.getFixtureB().getUserData();
+                Object bodyDataA = contact.getFixtureA().getBody().getUserData();
+                Object bodyDataB = contact.getFixtureB().getBody().getUserData();
+
+                boolean isA_Player = "player".equals(dataA) || "player".equals(bodyDataA);
+                boolean isB_Player = "player".equals(dataB) || "player".equals(bodyDataB);
+
+                Body platformBody = null;
+                if (isA_Player && ("platform".equals(dataB) || "platform".equals(bodyDataB) || "ground".equals(dataB) || "ground".equals(bodyDataB))) {
+                    platformBody = contact.getFixtureB().getBody();
+                } else if (isB_Player && ("platform".equals(dataA) || "platform".equals(bodyDataA) || "ground".equals(dataA) || "ground".equals(bodyDataA))) {
+                    platformBody = contact.getFixtureA().getBody();
+                }
+
+                if (platformBody != null) {
+                    if (player.body.getLinearVelocity().y <= 0) {
+                        handleLanding(platformBody);
+                    }
+                }
+            }
+
+            @Override public void endContact(Contact contact) {}
+            @Override public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
+        });
 
         // Background do lớp con quyết định
         initBackground();
@@ -261,6 +301,49 @@ public abstract class BaseScreen implements Screen {
         updateInputProcessors();
 
         shapeRenderer = new ShapeRenderer();
+
+        world.setContactListener(new ContactListener() {
+            @Override
+            public void beginContact(Contact contact) {
+                Object dataA = contact.getFixtureA().getUserData();
+                Object dataB = contact.getFixtureB().getUserData();
+                Object bodyDataA = contact.getFixtureA().getBody().getUserData();
+                Object bodyDataB = contact.getFixtureB().getBody().getUserData();
+
+                boolean isA_Player = "player".equals(dataA) || "player".equals(bodyDataA);
+                boolean isB_Player = "player".equals(dataB) || "player".equals(bodyDataB);
+
+                Body platformBody = null;
+                if (isA_Player && ("platform".equals(dataB) || "platform".equals(bodyDataB) || "ground".equals(dataB) || "ground".equals(bodyDataB))) {
+                    platformBody = contact.getFixtureB().getBody();
+                } else if (isB_Player && ("platform".equals(dataA) || "platform".equals(bodyDataA) || "ground".equals(dataA) || "ground".equals(bodyDataA))) {
+                    platformBody = contact.getFixtureA().getBody();
+                }
+
+                if (platformBody != null) {
+                    if (player.body.getLinearVelocity().y <= 0) {
+                        handleLanding(platformBody);
+                    }
+                }
+            }
+
+            @Override public void endContact(Contact contact) {}
+            @Override public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
+        });
+    }
+
+    protected void handleLanding(Body platformBody) {
+        if (!visitedPlatforms.contains(platformBody)) {
+            visitedPlatforms.add(platformBody);
+            currentPlatformY = platformBody.getPosition().y;
+            // Don't score for the initial ground platform (first one added)
+            if (visitedPlatforms.size() > 1) {
+                scoreManager.addScore(10);
+                gameplayUI.updateScore(scoreManager.getCurrentScore());
+            }
+        }
+        player.isStunned = false;
     }
 
     // -------------------------------------------------------
@@ -278,6 +361,11 @@ public abstract class BaseScreen implements Screen {
             // Game over khi rơi xuống hố
             if (py < DEATH_Y)
                 triggerGameOver();
+
+            // bắt đầu từ lv2, khi người chơi rơi xuống sẽ trigger game over
+            if (this instanceof SpaceScreen && py < currentPlatformY - 1.0f && py > DEATH_Y) {
+                triggerGameOver();
+            }
 
             // Chuyển màn khi đạt ngưỡng
             if (py >= getLevelClearY())
@@ -327,14 +415,15 @@ public abstract class BaseScreen implements Screen {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
                 shapeRenderer.setColor(Color.WHITE);
                 Vector2 startPos = player.body.getPosition();
-                Vector2 velocity = inputHandler.dragVector.cpy().scl(-0.005f);
+                float mass = player.body.getMass();
+                Vector2 velocity = inputHandler.dragVector.cpy().scl(-0.005f / mass);
 
-                float timeStep = 0.1f;
-                for (int i = 0; i < 15; i++) {
+                float timeStep = 0.05f; // giảm số thời gian để tăng độ chính xác
+                for (int i = 0; i < 30; i++) { // kéo dài đường hiển thị ra
                     float t = i * timeStep;
                     float x = startPos.x + velocity.x * t;
                     float y = startPos.y + velocity.y * t + 0.5f * Constants.GRAVITY * t * t;
-                    shapeRenderer.circle(x, y, 0.04f, 8);
+                    shapeRenderer.circle(x, y, 0.03f, 8);
                 }
                 shapeRenderer.end();
             }
@@ -363,7 +452,7 @@ public abstract class BaseScreen implements Screen {
         if (inputHandler != null)
             inputHandler.reset();
 
-        int score = (int) (highestY * 10);
+        int score = scoreManager.getCurrentScore();
         boolean isNew = score > scoreManager.getHighScore();
         scoreManager.saveHighScore(score);
         gameOverOverlay.setData(score, scoreManager.getHighScore(), isNew);
@@ -378,6 +467,13 @@ public abstract class BaseScreen implements Screen {
             isPaused = false;
             idleTimer = 0;
             highestY = 0;
+            currentPlatformY = 0;
+            scoreManager.resetScore();
+            visitedPlatforms.clear();
+            gameplayUI.updateScore(0);
+            scoreManager.resetScore();
+            visitedPlatforms.clear();
+            gameplayUI.updateScore(0);
 
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);

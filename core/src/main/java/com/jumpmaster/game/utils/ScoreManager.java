@@ -7,9 +7,11 @@ public class ScoreManager {
     private static final String PREFS_NAME = "JumpMasterPrefs";
     private static final String KEY_HIGH_SCORE = "highScore";
     private Preferences prefs;
+    private int currentScore;
 
     public ScoreManager() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
+        currentScore = 0;
     }
 
     public int getHighScore() {
@@ -21,5 +23,17 @@ public class ScoreManager {
             prefs.putInteger(KEY_HIGH_SCORE, score);
             prefs.flush(); // EF1: Lưu thực sự xuống file
         }
+    }
+
+    public int getCurrentScore() {
+        return currentScore;
+    }
+
+    public void addScore(int points) {
+        currentScore += points;
+    }
+
+    public void resetScore() {
+        currentScore = 0;
     }
 }

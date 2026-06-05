@@ -17,6 +17,7 @@ import com.jumpmaster.game.utils.Constants;
 public class GameplayUI {
     public Stage stage;
     private Label fpsLabel;
+    private Label scoreLabel;
 
     public interface GameplayListener {
         void onPause();
@@ -49,10 +50,17 @@ public class GameplayUI {
         fpsLabel = new Label("0 FPS", labelStyle);
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
 
-        table.add(fpsLabel).left().expandX().pad(15);
+        scoreLabel = new Label("Score: 0", labelStyle);
+
+        table.add(fpsLabel).left().pad(15);
+        table.add(scoreLabel).expandX().center().pad(15);
         table.add(pauseButton).right().pad(15);
 
         stage.addActor(table);
+    }
+
+    public void updateScore(int score) {
+        scoreLabel.setText("Score: " + score);
     }
 
     public void render() {

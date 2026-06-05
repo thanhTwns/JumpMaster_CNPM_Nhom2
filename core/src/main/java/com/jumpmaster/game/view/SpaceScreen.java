@@ -92,7 +92,8 @@ public class SpaceScreen extends BaseScreen {
 
                 if ((isA_Player && isB_Ground) || (isB_Player && isA_Ground)) {
                     if (player.body.getLinearVelocity().y <= 0) {
-                        player.isStunned = false;
+                        Body platformBody = isB_Ground ? contact.getFixtureB().getBody() : contact.getFixtureA().getBody();
+                        handleLanding(platformBody);
                     }
                 }
             }

@@ -20,7 +20,6 @@ public class JumpMasterGame extends Game {
         batch = new SpriteBatch();
         // Load settings and apply display mode
         GameSettings.getInstance().applyDisplayMode();
-
         AudioManager.getInstance().init();
         AudioManager.getInstance().playMenuMusic();// play menu music
         setScreen(new MainScreen(this));
