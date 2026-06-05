@@ -73,6 +73,7 @@ public class MainScreen implements Screen {
     private String popupText = "";
     private String selectedModeTag = "";
     private ShapeRenderer shapeRenderer;
+    private Rectangle btnBack;
     @Override
     public void show() {
         batch  = new SpriteBatch();
@@ -94,6 +95,8 @@ public class MainScreen implements Screen {
 
         btnXacNhan = new com.badlogic.gdx.math.Rectangle(
             (screenW - btnW) / 2, (screenH / 2) - 120, btnW, btnH);
+
+        btnBack = new Rectangle(0, 0, 120, 50);
     }
 
     @Override
@@ -116,10 +119,16 @@ public class MainScreen implements Screen {
         float btnH = 60;
 
         btnXacNhan = new Rectangle(
-            popupX + popupW / 2 - btnW / 2,
+            popupX + popupW - btnW - 40,
             popupY + 20,
             btnW,
             btnH
+        );
+        btnBack.set(
+            popupX + 40,
+            popupY + 20,
+            120,
+            50
         );
     }
 
@@ -262,34 +271,11 @@ public class MainScreen implements Screen {
 
             shapeRenderer.end();
 
-            // =====================
-            // VẼ VIỀN
-            // =====================
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
 
-            shapeRenderer.setColor(1f, 0.85f, 0.2f, 1);
-
-            shapeRenderer.rect(
-                popupX,
-                popupY,
-                popupW,
-                popupH
-            );
-
-            shapeRenderer.rect(
-                btnXacNhan.x,
-                btnXacNhan.y,
-                btnXacNhan.width,
-                btnXacNhan.height
-            );
-
-            shapeRenderer.end();
 
             batch.begin();
 
-            // =====================
-            // TIÊU ĐỀ
-            // =====================
+
             fontMedium.setColor(Color.GOLD);
 
             fontMedium.draw(
@@ -309,9 +295,7 @@ public class MainScreen implements Screen {
                 popupY + popupH - 60
             );
 
-            // =====================
-            // NỘI DUNG
-            // =====================
+
             fontSmall.setColor(Color.WHITE);
 
             fontSmall.draw(
@@ -324,9 +308,7 @@ public class MainScreen implements Screen {
                 true
             );
 
-            // =====================
-            // NÚT BẮT ĐẦU
-            // =====================
+
             fontMedium.setColor(Color.WHITE);
 
             GlyphLayout layout = new GlyphLayout(fontMedium, "START");
@@ -336,6 +318,14 @@ public class MainScreen implements Screen {
                 "START",
                 btnXacNhan.x + (btnXacNhan.width - layout.width) / 2,
                 btnXacNhan.y + (btnXacNhan.height + layout.height) / 2
+            );
+            GlyphLayout backLayout = new GlyphLayout(fontMedium, "BACK");
+
+            fontMedium.draw(
+                batch,
+                "BACK",
+                btnBack.x + (btnBack.width - backLayout.width) / 2,
+                btnBack.y + (btnBack.height + backLayout.height) / 2
             );
 
             batch.end();
@@ -446,44 +436,54 @@ public class MainScreen implements Screen {
         if (!Gdx.input.justTouched()) return;
         float tx = Gdx.input.getX(), ty = screenH - Gdx.input.getY();
 
-        // TRƯỜNG HỢP 1: Popup luật chơi đang mở -> Chỉ xử lý nút Xác nhận
-        if (isShowingPopup) {
-            if (btnXacNhan.contains(tx, ty)) {
-                Gdx.app.log("SystemLog", "XAC NHAN HOP LE: Bat dau van choi " + selectedModeTag);
-                isShowingPopup = false; // Tắt trạng thái popup
 
-                // Thực hiện chuyển màn hình chơi thực sự sang GameScreen
-                game.setScreen(new GameScreen(game, selectedModeTag));
+        if (isShowingPopup) {
+
+            // BACK
+            if (btnBack.contains(tx, ty)) {
+                isShowingPopup = false;
+                return;
             }
-            return; // Khóa toàn bộ các tương tác menu bên dưới lại
+
+            // START
+            if (btnXacNhan.contains(tx, ty)) {
+                Gdx.app.log("SystemLog",
+                    "XAC NHAN HOP LE: Bat dau van choi " + selectedModeTag);
+
+                isShowingPopup = false;
+                game.setScreen(new GameScreen(game, selectedModeTag));
+                return;
+            }
+
+            return;
         }
 
-        // TRƯỜNG HỢP 2: Menu chính bình thường
+
         if (btnClassic.contains(tx, ty)) {
-            // Nạp cấu hình chế độ Classic vào Preferences
+
             com.badlogic.gdx.Preferences prefs = Gdx.app.getPreferences("GameConfig");
             prefs.putString("current_mode", "MODE_CLASSIC");
             prefs.putFloat("initial_score", 0f);
             prefs.putFloat("time_limit", -1f);
             prefs.flush();
 
-            // Cấu hình dữ liệu hiển thị lên Popup
+
             popupText = DESC_CLASSIC;
             selectedModeTag = "classic";
-            isShowingPopup = true; // Bật Popup lên
+            isShowingPopup = true;
         }
         else if (btnTimeAttack.contains(tx, ty)) {
-            // Nạp cấu hình chế độ Time Attack vào Preferences
+
             com.badlogic.gdx.Preferences prefs = Gdx.app.getPreferences("GameConfig");
             prefs.putString("current_mode", "MODE_TIME_ATTACK");
             prefs.putFloat("initial_score", 0f);
             prefs.putFloat("time_limit", 60f);
             prefs.flush();
 
-            // Cấu hình dữ liệu hiển thị lên Popup
+
             popupText = DESC_TIME_ATTACK;
             selectedModeTag = "time_attack";
-            isShowingPopup = true; // Bật Popup lên
+            isShowingPopup = true;
         }
         else if (btnChallenge.contains(tx, ty)) {
             Gdx.app.log("SystemLog", "CHE DO DANG PHAT TRIEN: Vui long chon che do khac!");
