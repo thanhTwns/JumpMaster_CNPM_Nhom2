@@ -96,6 +96,10 @@ public abstract class BaseScreen implements Screen {
     protected ScoreManager scoreManager;
     protected Set<Body> visitedPlatforms = new HashSet<>();
 
+    protected int comboCount = 0;
+    protected float comboTimer = 0f;
+    protected static final float COMBO_TIMEOUT = 5.0f;
+
     protected static final float DEATH_Y = -0.5f;
 
     // -------------------------------------------------------
@@ -339,8 +343,18 @@ public abstract class BaseScreen implements Screen {
             currentPlatformY = platformBody.getPosition().y;
             // Don't score for the initial ground platform (first one added)
             if (visitedPlatforms.size() > 1) {
-                scoreManager.addScore(10);
+                if (comboCount > 0 && comboTimer <= COMBO_TIMEOUT) {
+                    comboCount++;
+                } else {
+                    comboCount = 1;
+                }
+                comboTimer = 0;
+
+                // Công thức: 10 * (1 + (combo - 1) * 0.5)
+                int points = (int) (10 * (1 + (comboCount - 1) * 0.5f));
+                scoreManager.addScore(points);
                 gameplayUI.updateScore(scoreManager.getCurrentScore());
+                gameplayUI.updateCombo(comboCount);
             }
         }
         player.isStunned = false;
@@ -353,6 +367,16 @@ public abstract class BaseScreen implements Screen {
     public void render(float delta) {
         if (!isPaused && currentState != State.GAME_OVER) {
             world.step(1 / 60f, 6, 2);
+
+            // logic tính combo
+            if (comboCount > 0) {
+                comboTimer += delta;
+                if (comboTimer > COMBO_TIMEOUT) {
+                    comboCount = 0;
+                    comboTimer = 0;
+                    gameplayUI.updateCombo(0);
+                }
+            }
 
             float py = player.body.getPosition().y;
             if (py > highestY)
@@ -468,9 +492,12 @@ public abstract class BaseScreen implements Screen {
             idleTimer = 0;
             highestY = 0;
             currentPlatformY = 0;
+            comboCount = 0;
+            comboTimer = 0;
             scoreManager.resetScore();
             visitedPlatforms.clear();
             gameplayUI.updateScore(0);
+            gameplayUI.updateCombo(0);
             scoreManager.resetScore();
             visitedPlatforms.clear();
             gameplayUI.updateScore(0);

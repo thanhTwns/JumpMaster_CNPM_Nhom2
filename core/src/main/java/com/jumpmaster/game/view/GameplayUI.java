@@ -18,6 +18,7 @@ public class GameplayUI {
     public Stage stage;
     private Label fpsLabel;
     private Label scoreLabel;
+    private Label comboLabel;
 
     public interface GameplayListener {
         void onPause();
@@ -52,8 +53,12 @@ public class GameplayUI {
 
         scoreLabel = new Label("Score: 0", labelStyle);
 
+        comboLabel = new Label("", labelStyle);
+        comboLabel.setColor(Color.YELLOW);
+
         table.add(fpsLabel).left().pad(15);
         table.add(scoreLabel).expandX().center().pad(15);
+        table.add(comboLabel).right().pad(15);
         table.add(pauseButton).right().pad(15);
 
         stage.addActor(table);
@@ -61,6 +66,14 @@ public class GameplayUI {
 
     public void updateScore(int score) {
         scoreLabel.setText("Score: " + score);
+    }
+
+    public void updateCombo(int combo) {
+        if (combo > 1) {
+            comboLabel.setText("Combo x" + combo);
+        } else {
+            comboLabel.setText("");
+        }
     }
 
     public void render() {
