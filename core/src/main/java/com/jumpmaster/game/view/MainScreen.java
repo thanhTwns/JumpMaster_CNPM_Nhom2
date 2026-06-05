@@ -59,12 +59,15 @@ public class MainScreen implements Screen {
     //
 
     private static final String DESC_CLASSIC =
-        "CHE DO CO DIEN:\n- Nhay len cac platform cao nhat." +
-            "\n- Khong gioi han thoi gian.";
+        "CLASSIC MODE:\n" +
+            "- Jump across platforms and reach the highest score.\n" +
+            "- No time limit.";
+
     private static final String DESC_TIME_ATTACK =
-        "CHE DO TIME ATTACK:\n- Thoi gian gioi han: 60 giay." +
-            "\n- Tieu diet quai doi va thu thap binh mau de sinh ton." +
-            "\n- Cham vao cong Portal de qua man nhanh nhat.";
+        "TIME ATTACK MODE:\n" +
+            "- Race against the clock.\n" +
+            "- Defeat enemies and collect health potions.\n" +
+            "- Find the portal and finish the stage as fast as possible.";
     private boolean isShowingPopup = false;
     private com.badlogic.gdx.math.Rectangle btnXacNhan;
     private String popupText = "";
@@ -219,58 +222,121 @@ public class MainScreen implements Screen {
         drawText();
         batch.end();
 
-        //popup hiển thị luật chơi
         if (isShowingPopup) {
 
-            // nền tối phía sau
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-            shapeRenderer.setColor(0, 0, 0, 0.7f);
-            shapeRenderer.rect(0, 0, screenW, screenH);
-
-            // khung popup
             float popupW = screenW * 0.75f;
             float popupH = screenH * 0.55f;
             float popupX = (screenW - popupW) / 2;
             float popupY = (screenH - popupH) / 2;
 
-            shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 1);
-            shapeRenderer.rect(popupX, popupY, popupW, popupH);
+            // =====================
+            // VẼ NỀN POPUP
+            // =====================
 
-            // viền vàng
-            shapeRenderer.setColor(1f, 0.8f, 0.2f, 1);
-            shapeRenderer.rectLine(
-                popupX, popupY,
-                popupX + popupW, popupY,
-                4);
 
-            shapeRenderer.rectLine(
-                popupX, popupY + popupH,
-                popupX + popupW, popupY + popupH,
-                4);
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+            // nền tối toàn màn hình
+            shapeRenderer.setColor(0, 0, 0, 0.75f);
+            shapeRenderer.rect(0, 0, screenW, screenH);
+
+            // bóng popup
+            shapeRenderer.setColor(0f, 0f, 0f, 0.4f);
+            shapeRenderer.rect(
+                popupX + 8,
+                popupY - 8,
+                popupW,
+                popupH
+            );
+
+            // nền popup
+            shapeRenderer.setColor(0.12f, 0.15f, 0.22f, 1);
+            shapeRenderer.rect(
+                popupX,
+                popupY,
+                popupW,
+                popupH
+            );
+
+
 
             shapeRenderer.end();
+
+            // =====================
+            // VẼ VIỀN
+            // =====================
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+
+            shapeRenderer.setColor(1f, 0.85f, 0.2f, 1);
+
+            shapeRenderer.rect(
+                popupX,
+                popupY,
+                popupW,
+                popupH
+            );
+
+            shapeRenderer.rect(
+                btnXacNhan.x,
+                btnXacNhan.y,
+                btnXacNhan.width,
+                btnXacNhan.height
+            );
+
+            shapeRenderer.end();
+
             batch.begin();
 
-            // tiêu đề
-            fontMedium.draw(batch,
-                "=== LUAT CHOI ===",
-                popupX + 40,
-                popupY + popupH - 40);
+            // =====================
+            // TIÊU ĐỀ
+            // =====================
+            fontMedium.setColor(Color.GOLD);
 
-            // nội dung
-            fontSmall.draw(batch,
+            fontMedium.draw(
+                batch,
+                "GAME RULES",
+                popupX + popupW/2 - 90,
+                popupY + popupH - 35
+            );
+
+            // đường kẻ dưới tiêu đề
+            fontSmall.setColor(Color.LIGHT_GRAY);
+
+            fontSmall.draw(
+                batch,
+                "----------------------------",
+                popupX + 40,
+                popupY + popupH - 60
+            );
+
+            // =====================
+            // NỘI DUNG
+            // =====================
+            fontSmall.setColor(Color.WHITE);
+
+            fontSmall.draw(
+                batch,
                 popupText,
                 popupX + 40,
                 popupY + popupH - 100,
                 popupW - 80,
                 Align.left,
-                true);
+                true
+            );
 
-            // nút xác nhận
-            fontMedium.draw(batch,
-                "[ BAT DAU ]",
-                btnXacNhan.x + 20,
-                btnXacNhan.y + 40);
+            // =====================
+            // NÚT BẮT ĐẦU
+            // =====================
+            fontMedium.setColor(Color.WHITE);
+
+            GlyphLayout layout = new GlyphLayout(fontMedium, "START");
+
+            fontMedium.draw(
+                batch,
+                "START",
+                btnXacNhan.x + (btnXacNhan.width - layout.width) / 2,
+                btnXacNhan.y + (btnXacNhan.height + layout.height) / 2
+            );
 
             batch.end();
         }
