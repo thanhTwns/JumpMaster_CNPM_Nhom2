@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.utils.Align;
 import com.jumpmaster.game.JumpMasterGame;
 
 public class MainScreen implements Screen {
@@ -57,6 +58,31 @@ public class MainScreen implements Screen {
     // Nút bấm
     private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores;
 
+    private static final String DESC_CLASSIC =
+        "CLASSIC MODE:\n" +
+            "- Jump across platforms and reach the highest score.\n" +
+            "- No time limit.";
+
+    private static final String DESC_TIME_ATTACK =
+        "TIME ATTACK MODE:\n" +
+            "- Race against the clock.\n" +
+            "- Defeat enemies and collect health potions.\n" +
+            "- Find the portal and finish the stage as fast as possible.";
+    private static final String DESC_CHALLENGE =
+        "CHALLENGE MODE:\n" +
+            "- Complete special objectives on each stage.\n" +
+            "- Avoid enemies and environmental hazards.\n" +
+            "- Limited lives and tougher platform layouts.\n" +
+            "- Reach the goal before running out of chances.\n" +
+            "- Earn bonus points for completing challenges.";
+    private boolean isShowingPopup = false;
+    private com.badlogic.gdx.math.Rectangle btnXacNhan;
+    private String popupText = "";
+    private String selectedModeTag = "";
+    private ShapeRenderer shapeRenderer;
+    private Rectangle btnBack;
+
+
     public MainScreen(JumpMasterGame game) {
         this.game = game;
     }
@@ -76,6 +102,13 @@ public class MainScreen implements Screen {
         iconSettings.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconTrophy.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
+        float btnW = 220f;
+        float btnH = 60f;
+        shapeRenderer = new ShapeRenderer();
+        btnXacNhan = new com.badlogic.gdx.math.Rectangle(
+            (screenW - btnW) / 2, (screenH / 2) - 120, btnW, btnH);
+
+        btnBack = new Rectangle(0, 0, 120, 50);
     }
 
     // ── resize() is the single source of truth for W/H ──────────────────────
@@ -95,6 +128,25 @@ public class MainScreen implements Screen {
         setupButtons();
         initStars();
         initCols();
+
+        float popupW = screenW * 0.75f;
+        float popupH = screenH * 0.55f;
+        float popupX = (screenW - popupW) / 2;
+        float popupY = (screenH - popupH) / 2;
+        float btnW = 220;
+        float btnH = 60;
+        btnXacNhan = new Rectangle(
+            popupX + popupW - btnW - 40,
+            popupY + 20,
+            btnW,
+            btnH
+        );
+        btnBack.set(
+            popupX + 40,
+            popupY + 20,
+            120,
+            50
+        );
     }
 
     // ── Font generation ──────────────────────────────────────────────────────
@@ -213,6 +265,107 @@ public class MainScreen implements Screen {
         drawIcons();
         drawText();
         batch.end();
+
+        //popup game rules
+        if (isShowingPopup) {
+
+            float popupW = screenW * 0.75f;
+            float popupH = screenH * 0.55f;
+            float popupX = (screenW - popupW) / 2;
+            float popupY = (screenH - popupH) / 2;
+
+            // =====================
+            // VẼ NỀN POPUP
+            // =====================
+
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+            // nền tối toàn màn hình
+            shapeRenderer.setColor(0, 0, 0, 0.75f);
+            shapeRenderer.rect(0, 0, screenW, screenH);
+
+            // bóng popup
+            shapeRenderer.setColor(0f, 0f, 0f, 0.4f);
+            shapeRenderer.rect(
+                popupX + 8,
+                popupY - 8,
+                popupW,
+                popupH
+            );
+
+            // nền popup
+            shapeRenderer.setColor(0.12f, 0.15f, 0.22f, 1);
+            shapeRenderer.rect(
+                popupX,
+                popupY,
+                popupW,
+                popupH
+            );
+
+
+
+            shapeRenderer.end();
+
+
+
+            batch.begin();
+
+
+            fontMedium.setColor(Color.GOLD);
+
+            fontMedium.draw(
+                batch,
+                "GAME RULES",
+                popupX + popupW/2 - 90,
+                popupY + popupH - 35
+            );
+
+            // đường kẻ dưới tiêu đề
+            fontSmall.setColor(Color.LIGHT_GRAY);
+
+            fontSmall.draw(
+                batch,
+                "----------------------------",
+                popupX + 40,
+                popupY + popupH - 60
+            );
+
+
+            fontSmall.setColor(Color.WHITE);
+
+            fontSmall.draw(
+                batch,
+                popupText,
+                popupX + 40,
+                popupY + popupH - 100,
+                popupW - 80,
+                Align.left,
+                true
+            );
+
+
+            fontMedium.setColor(Color.WHITE);
+
+            GlyphLayout layout = new GlyphLayout(fontMedium, "START");
+
+            fontMedium.draw(
+                batch,
+                "START",
+                btnXacNhan.x + (btnXacNhan.width - layout.width) / 2,
+                btnXacNhan.y + (btnXacNhan.height + layout.height) / 2
+            );
+            GlyphLayout backLayout = new GlyphLayout(fontMedium, "BACK");
+
+            fontMedium.draw(
+                batch,
+                "BACK",
+                btnBack.x + (btnBack.width - backLayout.width) / 2,
+                btnBack.y + (btnBack.height + backLayout.height) / 2
+            );
+
+            batch.end();
+        }
     }
 
     // ── Draw helpers ─────────────────────────────────────────────────────────
@@ -344,16 +497,31 @@ public class MainScreen implements Screen {
         float tx = Gdx.input.getX();
         float ty = screenH - Gdx.input.getY();
 
-        if (btnClassic.contains(tx, ty))
-            game.setScreen(new EarthScreen(game, "classic"));
-        else if (btnTimeAttack.contains(tx, ty))
-            game.setScreen(new EarthScreen(game, "timeattack"));
-        else if (btnChallenge.contains(tx, ty))
-            game.setScreen(new EarthScreen(game, "challenge"));
-        else if (btnSettings.contains(tx, ty))
+        if (isShowingPopup) {
+
+            if (btnBack.contains(tx, ty)) {
+                closePopup();
+                return;
+            }
+
+            if (btnXacNhan.contains(tx, ty)) {
+                startSelectedMode();
+                return;
+            }
+
+            return;
+        }
+        if (btnClassic.contains(tx, ty)) {
+            showClassicPopup();
+        } else if (btnTimeAttack.contains(tx, ty)) {
+            showTimeAttackPopup();
+        } else if (btnChallenge.contains(tx, ty)) {
+            showChallengePopup();
+        } else if (btnSettings.contains(tx, ty))
             game.setScreen(new SettingsScreen(game));
-        else if (btnScores.contains(tx, ty)) //user xem điểm đã lưu từ 3.2.1.3c -> 3.2.2 gọi đối tượng LeaderboardScreen()
+          else if (btnScores.contains(tx, ty)) //user xem điểm đã lưu từ 3.2.1.3c -> 3.2.2 gọi đối tượng LeaderboardScreen()
             game.setScreen(new LeaderboardScreen(game));
+
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -371,5 +539,53 @@ public class MainScreen implements Screen {
         iconSettings.dispose();
         iconTrophy.dispose();
         chickenTex.dispose();
+    }
+
+    void showClassicPopup() {
+        popupText = DESC_CLASSIC;
+        selectedModeTag = "classic";
+        isShowingPopup = true;
+    }
+
+    void showTimeAttackPopup() {
+        popupText = DESC_TIME_ATTACK;
+        selectedModeTag = "timeattack";
+        isShowingPopup = true;
+    }
+
+    void showChallengePopup() {
+        popupText = DESC_CHALLENGE;
+        selectedModeTag = "challenge";
+        isShowingPopup = true;
+    }
+
+    void closePopup() {
+        isShowingPopup = false;
+    }
+
+    void startSelectedMode() {
+
+        isShowingPopup = false;
+
+        if ("classic".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "classic"));
+        }
+        else if ("timeattack".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "timeattack"));
+        }
+        else if ("challenge".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "challenge"));
+        }
+    }
+    boolean isShowingPopup() {
+        return isShowingPopup;
+    }
+
+    String getPopupText() {
+        return popupText;
+    }
+
+    String getSelectedModeTag() {
+        return selectedModeTag;
     }
 }
