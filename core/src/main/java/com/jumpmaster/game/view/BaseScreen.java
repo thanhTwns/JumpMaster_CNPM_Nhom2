@@ -17,6 +17,7 @@ import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ObjectSet;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.JumpMasterGame;
@@ -82,11 +83,23 @@ public abstract class BaseScreen implements Screen {
 
     protected Player player;
     protected Array<Platform> platforms;
+    protected ObjectSet<Platform> visitedPlatforms = new ObjectSet<>();
+    protected Platform groundPlatform; // mặt đất — không tính điểm khi chạm
 
     protected float highestY = 0f;
     protected float currentPlatformY = 0f;
     protected float smoothCamY = 0f;
+
+    // ── 3.2.1.5 Idle Timer ──────────────────────────────────────────────────
+    // AF 3.2.2.1a: đếm ngược 30s khi ở màn GAME_OVER, không có input
     protected float idleTimer = 0f;
+    private static final float IDLE_TIMEOUT = 30f;
+
+    // ── 3.2.1.3a Game Over Delay (UC-3.2.4) ────────────────────────────────
+    // NFR: overlay chỉ xuất hiện sau 1 giây fade-in kể từ khi nhận game over
+    private float gameOverDelay    = 0f;
+    private static final float GAME_OVER_DELAY_MAX = 1.0f;
+    private boolean overlayVisible = false; // true khi delay đã đủ 1s
 
     protected boolean isPaused = false;
     protected GameplayUI gameplayUI;
@@ -173,17 +186,15 @@ public abstract class BaseScreen implements Screen {
         return 80f;
     }
 
-    // -------------------------------------------------------
-    // SHOW — khởi tạo toàn bộ phần chung
-    // -------------------------------------------------------
+    // 2.1.1. Khi người dùng bắt đầu trò chơi, hàm show() khởi tạo tài nguyên
     @Override
     public void show() {
         AudioManager.getInstance().playGameMusic();
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(
-                Constants.VIEWPORT_WIDTH / Constants.PPM,
-                Constants.VIEWPORT_HEIGHT / Constants.PPM,
-                camera);
+            Constants.VIEWPORT_WIDTH / Constants.PPM,
+            Constants.VIEWPORT_HEIGHT / Constants.PPM,
+            camera);
         world = new World(new Vector2(0, Constants.GRAVITY), true);
 
         world.setContactListener(new ContactListener() {
@@ -377,6 +388,8 @@ public abstract class BaseScreen implements Screen {
                     gameplayUI.updateCombo(0);
                 }
             }
+            // Cập nhật ScoreManager để xử lý đếm ngược combo 5s
+            scoreManager.update(delta);
 
             float py = player.body.getPosition().y;
             if (py > highestY)
@@ -430,8 +443,8 @@ public abstract class BaseScreen implements Screen {
             float pX = player.body.getPosition().x;
             float pY = player.body.getPosition().y;
             shapeRenderer.line(pX, pY,
-                    pX + inputHandler.dragVector.x / Constants.PPM,
-                    pY + inputHandler.dragVector.y / Constants.PPM);
+                pX + inputHandler.dragVector.x / Constants.PPM,
+                pY + inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.end();
 
             // vẽ đường dự đoán
@@ -456,11 +469,58 @@ public abstract class BaseScreen implements Screen {
         // overlay
         if (currentState == State.GAME_OVER) {
             updateInputProcessors();
-            gameOverOverlay.render();
-        } else if (isPaused)
-            pauseOverlay.render();
-        else
+
+            // ── 3.2.1.3a Game Over Delay ────────────────────────────────
+            // Đếm đủ GAME_OVER_DELAY_MAX (1s) mới hiện overlay → đúng NFR
+            if (!overlayVisible) {
+                gameOverDelay += delta;
+                if (gameOverDelay >= GAME_OVER_DELAY_MAX) {
+                    overlayVisible = true;   // unlock overlay sau 1 giây
+                }
+            }
+
+            // ── 3.2.1.5 Idle Timer ──────────────────────────────────────
+            // AF 3.2.2.1a: chỉ đếm khi overlay đã hiện (người chơi đang xem)
+            if (overlayVisible) {
+                idleTimer += delta;
+                // AF 3.2.2.1b: tự động về menu sau IDLE_TIMEOUT giây không input
+                if (idleTimer >= IDLE_TIMEOUT) {
+                    goToMenu(); // 3.2.1.5a autoReturnMenu()
+                }
+                gameOverOverlay.render();
+            }
+
+        } else if (isPaused) pauseOverlay.render();
+        else {
+            gameplayUI.update(scoreManager);
             gameplayUI.render();
+        }
+    }
+
+    // -------------------------------------------------------
+    // UC-3.3: Ghi nhận tiến độ - Xử lý tiếp đất (Refactored)
+    // -------------------------------------------------------
+    protected void handleLanding(Platform platform) {
+        // Bỏ qua mặt đất (spawn platform) và platform đã đáp rồi
+        if (platform == null || platform == groundPlatform || visitedPlatforms.contains(platform)) {
+            return;
+        }
+
+        visitedPlatforms.add(platform);
+        scoreManager.incrementColumns();
+
+        // Tính Base point = 10 (mặc định cho mỗi bậc bình thường)
+        int basePoint = 10;
+
+        // Combo logic (Chỉ tính trong vòng 5 giây, đã được reset tự động trong ScoreManager.update)
+        scoreManager.incrementCombo();
+        float comboMultiplier = 1.0f;
+        if (scoreManager.getCombo() > 1) {
+            comboMultiplier = 1.0f + (scoreManager.getCombo() - 1) * 0.5f; // x1.5, x2.0, x2.5...
+        }
+
+        int finalPoints = (int) (basePoint * comboMultiplier);
+        scoreManager.addPoints(finalPoints);
     }
 
     // -------------------------------------------------------
@@ -471,7 +531,8 @@ public abstract class BaseScreen implements Screen {
             return;
         currentState = State.GAME_OVER;
         updateInputProcessors();
-        idleTimer = 0;
+
+        // ── 3.2.1.2 stopPhysics ─────────────────────────────────────────
         player.body.setLinearVelocity(0, 0);
         if (inputHandler != null)
             inputHandler.reset();
@@ -480,6 +541,25 @@ public abstract class BaseScreen implements Screen {
         boolean isNew = score > scoreManager.getHighScore();
         scoreManager.saveHighScore(score);
         gameOverOverlay.setData(score, scoreManager.getHighScore(), isNew);
+        // ── 3.2.1.3a reset delay counter — bắt đầu đếm 1s fade-in ──────
+        gameOverDelay  = 0f;
+        overlayVisible = false;
+
+        // ── 3.2.1.5 reset idle timer — bắt đầu đếm 30s sau khi overlay hiện
+        idleTimer = 0f;
+
+        // ── 3.2.1.3 saveHighScore ────────────────────────────────────────
+        // UC-3.3 AF3: kiểm tra new record TRƯỚC khi flush
+        // vì flush() cập nhật highScore = currentScore
+        boolean isNewRecord = scoreManager.getCurrentScore() > scoreManager.getHighScore();
+        scoreManager.flush();
+
+        // ── 3.2.1.3b lấy stats phiên trước khi reset ────────────────────
+        int[] stats = scoreManager.getStats();
+
+        // ── 3.2.1.4 setData + setStats → GameOverOverlay ─────────────────
+        gameOverOverlay.setData(scoreManager.getCurrentScore(), scoreManager.getHighScore(), isNewRecord);
+        gameOverOverlay.setStats(stats); // 3.2.1.4 hiển thị thống kê phiên
     }
 
     // -------------------------------------------------------
@@ -487,9 +567,15 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void restartGame() {
         Gdx.app.postRunnable(() -> {
-            currentState = State.RUNNING;
-            isPaused = false;
-            idleTimer = 0;
+            // ── 3.2.1.6a restartGame ────────────────────────────────────
+            currentState   = State.RUNNING;
+            isPaused       = false;
+
+            // reset tất cả timer liên quan game over
+            idleTimer      = 0f;  // 3.2.1.5 reset idle
+            gameOverDelay  = 0f;  // 3.2.1.3a reset delay
+            overlayVisible = false;
+
             highestY = 0;
             currentPlatformY = 0;
             comboCount = 0;
@@ -501,11 +587,13 @@ public abstract class BaseScreen implements Screen {
             scoreManager.resetScore();
             visitedPlatforms.clear();
             gameplayUI.updateScore(0);
+            visitedPlatforms.clear();
+            scoreManager.resetSession();
 
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
             player.body.setTransform(
-                    new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
+                new Vector2(getSpawnX() / Constants.PPM, getSpawnY() / Constants.PPM), 0);
 
             camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
             smoothCamY = camera.position.y;

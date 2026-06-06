@@ -20,20 +20,22 @@ public class InputHandler extends InputAdapter {
         this.player = player;
     }
 
+
+    // 2.5.1 Khi người dùng tương tác cảm ứng, các hàm sẽ được gọi tương ứng để xử lí
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
         if (player.isStunned) return false;
-        if (Math.abs(player.body.getLinearVelocity().y) > 0.1f) {
-            return false;
-        }
 
+        // KHÔNG dùng velocity check — velocity từ Box2D không về 0 ngay sau
+        // tiếp đất (cần vài physics step), dẫn đến block input nhầm.
+        // Thay vào đó chỉ guard bằng activePointer để tránh multi-touch chồng nhau.
         if (activePointer != -1) return false;
 
         activePointer = pointer;
         startPosition = new Vector2(screenX, Gdx.graphics.getHeight() - screenY);
         isDragging = true;
         dragVector.set(0, 0);
-        AudioManager.getInstance().playPullSound();// phát âm thanh kéo
+        AudioManager.getInstance().playPullSound();
         return true;
     }
 

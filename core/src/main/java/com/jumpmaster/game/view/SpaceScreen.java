@@ -2,8 +2,6 @@ package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -33,16 +31,14 @@ public class SpaceScreen extends BaseScreen {
     private Texture bgSpace;
     private Texture bgPlanet;
 
-    // Monster
-    private Array<Body> monsters;
-    private Texture monsterSheet;
-    private Animation<TextureRegion> monsterAnimation;
+    // Ship system — 6 loại phi thuyền, random mỗi lần spawn
+    private Array<Body> planets;
+    private Texture[] planetTexture;
+    private static final int PLANET_COUNT = 6;
     private float stateTime = 0f;
-    private float monsterSpawnTimer = 0f;
+    private float planetSpawnTimer = 0f;
 
-    private static final float MONSTER_SPAWN_INTERVAL = 4.0f;
-    private static final int FRAME_COLS = 6;
-    private static final int FRAME_ROWS = 1;
+    private static final float PLANET_SPAWN_INTERVAL = 4.0f;
 
     public SpaceScreen(JumpMasterGame game) {
         super(game);
@@ -57,6 +53,13 @@ public class SpaceScreen extends BaseScreen {
         bgPlanet = new Texture("planet.png");
         bgSpace.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         bgPlanet.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+        // Load 6 ship textures
+        planetTexture = new Texture[PLANET_COUNT];
+        for (int i = 0; i < PLANET_COUNT; i++) {
+            planetTexture[i] = new Texture(Gdx.files.internal("planet_" + (i + 1) + ".png"));
+            planetTexture[i].setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        }
     }
 
     // -------------------------------------------------------
@@ -75,63 +78,49 @@ public class SpaceScreen extends BaseScreen {
 
                 boolean isA_Player = "player".equals(dataA) || "player".equals(bodyDataA);
                 boolean isB_Player = "player".equals(dataB) || "player".equals(bodyDataB);
-                boolean isA_Monster = (bodyDataA instanceof Object[]) && "monster".equals(((Object[]) bodyDataA)[0]);
-                boolean isB_Monster = (bodyDataB instanceof Object[]) && "monster".equals(((Object[]) bodyDataB)[0]);
 
-                // Player chạm monster → game over
+                // Player chạm ship → game over
+                boolean isA_Monster = (bodyDataA instanceof Object[]) && "planet".equals(((Object[]) bodyDataA)[0]);
+                boolean isB_Monster = (bodyDataB instanceof Object[]) && "planet".equals(((Object[]) bodyDataB)[0]);
+
                 if ((isA_Player && isB_Monster) || (isB_Player && isA_Monster)) {
                     triggerGameOver();
                     return;
                 }
 
-                // Player tiếp đất → hết stun
-                boolean isA_Ground = "platform".equals(dataA) || "ground".equals(dataA)
-                    || "platform".equals(bodyDataA) || "ground".equals(bodyDataA);
-                boolean isB_Ground = "platform".equals(dataB) || "ground".equals(dataB)
-                    || "platform".equals(bodyDataB) || "ground".equals(bodyDataB);
+                // Player tiếp đất → hết stun + UC-3.3 Ghi nhận tiến độ
+                Platform platform = null;
+                if (isA_Player && bodyDataB instanceof Platform) platform = (Platform) bodyDataB;
+                else if (isB_Player && bodyDataA instanceof Platform) platform = (Platform) bodyDataA;
 
                 if ((isA_Player && isB_Ground) || (isB_Player && isA_Ground)) {
                     if (player.body.getLinearVelocity().y <= 0) {
                         Body platformBody = isB_Ground ? contact.getFixtureB().getBody() : contact.getFixtureA().getBody();
                         handleLanding(platformBody);
+                if (platform != null) {
+                    // Chỉ tính điểm khi đang rơi xuống (velocity âm)
+                    if (player.body.getLinearVelocity().y < -0.05f) {
+                        player.isStunned = false;
+                        handleLanding(platform);
                     }
                 }
             }
 
-            @Override
-            public void endContact(Contact c) {
-            }
-
-            @Override
-            public void preSolve(Contact c, Manifold m) {
-            }
-
-            @Override
-            public void postSolve(Contact c, ContactImpulse i) {
-            }
+            @Override public void endContact(Contact contact) {}
+            @Override public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
 
-        // Monster animation sheet
-        monsters = new Array<>();
-        monsterSheet = new Texture(Gdx.files.internal("flying-head.png"));
-
-        int frameWidth = monsterSheet.getWidth() / FRAME_COLS;
-        int frameHeight = monsterSheet.getHeight() / FRAME_ROWS;
-
-        TextureRegion[][] tmp = TextureRegion.split(monsterSheet, frameWidth, frameHeight);
-        Array<TextureRegion> frames = new Array<>();
-        for (int i = 0; i < FRAME_ROWS; i++)
-            for (int j = 0; j < FRAME_COLS; j++)
-                frames.add(tmp[i][j]);
-
-        monsterAnimation = new Animation<>(0.1f, frames);
+        // Khởi tạo ship array
+        planets = new Array<>();
 
         // Mặt đất
         float groundH = 48f;
         float groundW = Constants.VIEWPORT_WIDTH + 200f;
-        platforms.add(new Platform(world,
+        groundPlatform = new Platform(world,
             Constants.VIEWPORT_WIDTH / 2f, groundH / 2f,
-            groundW, groundH, groundTexture));
+            groundW, groundH, groundTexture);
+        platforms.add(groundPlatform);
 
         // 20 bậc xen kẽ trái/phải
         float stepHeight = 16f;
@@ -148,6 +137,7 @@ public class SpaceScreen extends BaseScreen {
             }
             leftSide = !leftSide;
 
+            // Đã loại bỏ Platform.Type, chỉ tạo platform bình thường
             platforms.add(new Platform(world, randomX, currentY, platW, stepHeight, stepTexture));
             currentY += MathUtils.random(120f, 160f);
         }
@@ -197,59 +187,62 @@ public class SpaceScreen extends BaseScreen {
     }
 
     // -------------------------------------------------------
-    // EXTRA UPDATE — monster spawn
+    // EXTRA UPDATE — ship spawn timer
     // -------------------------------------------------------
     @Override
     protected void onExtraUpdate(float delta) {
         stateTime += delta;
-        monsterSpawnTimer += delta;
-        if (monsterSpawnTimer >= MONSTER_SPAWN_INTERVAL) {
-            spawnMonster();
-            monsterSpawnTimer = 0f;
+        planetSpawnTimer += delta;
+        if (planetSpawnTimer >= PLANET_SPAWN_INTERVAL) {
+            spawnPlanet();
+            planetSpawnTimer = 0f;
         }
     }
 
     // -------------------------------------------------------
-    // EXTRA DRAW — vẽ monsters (phải nằm trong batch.begin/end của base)
+    // EXTRA DRAW — vẽ ships (nằm trong batch.begin/end của base)
     // -------------------------------------------------------
     @Override
     protected void onExtraDraw() {
-        for (int i = 0; i < monsters.size; i++) {
-            Body m = monsters.get(i);
-            Object[] data = (Object[]) m.getUserData();
-            boolean facingRight = (boolean) data[1];
+        Array<Body> toRemove = new Array<>();
+        for (Body s : planets) {
+            Object[] data = (Object[]) s.getUserData();
+            boolean fromLeft = (boolean) data[1];
+            Texture tex = (Texture) data[2];
 
-            TextureRegion frame = monsterAnimation.getKeyFrame(stateTime, true);
-            float wM = frame.getRegionWidth() / Constants.PPM;
-            float hM = frame.getRegionHeight() / Constants.PPM;
-            float drawX = m.getPosition().x - wM / 2f;
-            float drawY = m.getPosition().y - hM / 2f;
+            // Kích thước hiển thị cố định cho ship
+            float wS = tex.getWidth() / Constants.PPM;
+            float hS = tex.getHeight() / Constants.PPM;
+            float drawX = s.getPosition().x - wS / 2f;
+            float drawY = s.getPosition().y - hS / 2f;
 
-            game.batch.draw(frame.getTexture(),
+            // Ship từ phải sang trái thì flip ngang
+            game.batch.draw(tex,
                 drawX, drawY,
-                wM / 2f, hM / 2f,
-                wM, hM,
+                wS / 2f, hS / 2f,
+                wS, hS,
                 1f, 1f, 0f,
-                frame.getRegionX(), frame.getRegionY(),
-                frame.getRegionWidth(), frame.getRegionHeight(),
-                !facingRight, false);
+                0, 0,
+                tex.getWidth(), tex.getHeight(),
+                fromLeft, false); // fromLeft=true → ship đi sang phải → không flip; fromLeft=false → flip
 
-            // Xóa monster nếu ra ngoài camera
             float camX = camera.position.x;
             float halfCamW = (Constants.VIEWPORT_WIDTH / Constants.PPM) / 2f;
-            if (m.getPosition().x > camX + halfCamW + 2f
-                || m.getPosition().x < camX - halfCamW - 2f) {
-                world.destroyBody(m);
-                monsters.removeIndex(i);
-                i--;
+            if (s.getPosition().x > camX + halfCamW + 2f
+                || s.getPosition().x < camX - halfCamW - 2f) {
+                toRemove.add(s);
             }
+        }
+        for (Body s : toRemove) {
+            world.destroyBody(s);
+            planets.removeValue(s, true);
         }
     }
 
     // -------------------------------------------------------
-    // SPAWN MONSTER
+    // SPAWN SHIP — random 1 trong 6 loại
     // -------------------------------------------------------
-    private void spawnMonster() {
+    private void spawnPlanet() {
         boolean fromLeft = MathUtils.randomBoolean();
         float camX = camera.position.x;
         float camY = camera.position.y;
@@ -259,32 +252,38 @@ public class SpaceScreen extends BaseScreen {
         float spawnY = camY + MathUtils.random(-halfH * 0.8f, halfH * 0.8f);
         float spawnX = fromLeft ? (camX - halfW - 1f) : (camX + halfW + 1f);
 
+        // Random chọn 1 trong 6 ship texture
+        Texture chosenTex = planetTexture[MathUtils.random(0, PLANET_COUNT - 1)];
+
         BodyDef bdef = new BodyDef();
         bdef.type = BodyDef.BodyType.KinematicBody;
         bdef.position.set(spawnX, spawnY);
-        Body monsterBody = world.createBody(bdef);
+        Body planetBody = world.createBody(bdef);
 
         CircleShape shape = new CircleShape();
-        shape.setRadius(15f / Constants.PPM);
-
+        // Hitbox dựa theo kích thước texture ship
+        shape.setRadius((chosenTex.getWidth() / 2f) / Constants.PPM * 0.7f); // 70% để dễ chơi hơn
         FixtureDef fdef = new FixtureDef();
         fdef.shape = shape;
         fdef.isSensor = true;
-        monsterBody.createFixture(fdef).setUserData("monster");
+        planetBody.createFixture(fdef).setUserData("planet");
         shape.dispose();
 
-        monsterBody.setLinearVelocity(fromLeft ? 2f : -2f, 0);
-        monsterBody.setUserData(new Object[]{"monster", fromLeft});
-        monsters.add(monsterBody);
+        planetBody.setLinearVelocity(fromLeft ? 2.5f : -2.5f, 0);
+        // userData: [tag, fromLeft, texture]
+        planetBody.setUserData(new Object[]{"planet", fromLeft, chosenTex});
+        planets.add(planetBody);
     }
 
     // -------------------------------------------------------
-    // EXTRA DISPOSE — background + monster sheet
+    // EXTRA DISPOSE — background + ship textures
     // -------------------------------------------------------
     @Override
     protected void onExtraDispose() {
         if (bgSpace != null) bgSpace.dispose();
         if (bgPlanet != null) bgPlanet.dispose();
-        if (monsterSheet != null) monsterSheet.dispose();
+        if (planetTexture != null)
+            for (Texture t : planetTexture)
+                if (t != null) t.dispose();
     }
 }

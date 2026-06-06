@@ -13,12 +13,18 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.jumpmaster.game.GameSettings;
 import com.jumpmaster.game.utils.Constants;
+import com.jumpmaster.game.utils.ScoreManager;
 
 public class GameplayUI {
     public Stage stage;
     private Label fpsLabel;
     private Label scoreLabel;
     private Label comboLabel;
+    private Label scoreLabel;
+    private Label comboLabel;
+    private Label columnLabel;
+    private BitmapFont font; // Đưa font lên đây để dùng chung
+    private ScoreManager scoreManager;
 
     public interface GameplayListener {
         void onPause();
@@ -27,12 +33,28 @@ public class GameplayUI {
     public GameplayUI(SpriteBatch batch, final GameplayListener listener) {
         stage = new Stage(new FitViewport(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT), batch);
 
-        Table table = new Table();
-        table.top();
-        table.setFillParent(true);
-
-        BitmapFont font = new BitmapFont();
+        // Khởi tạo font 1 lần duy nhất
+        font = new BitmapFont();
         font.getData().setScale(1.5f);
+
+        Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
+        scoreLabel = new Label("Score: 0", labelStyle);
+        columnLabel = new Label("Steps: 0", labelStyle);
+        comboLabel = new Label("", labelStyle);
+        comboLabel.setColor(Color.YELLOW);
+
+        // Bảng chứa điểm và FPS ở góc trái
+        Table topTable = new Table();
+        topTable.top().left();
+        topTable.setFillParent(true);
+        topTable.add(scoreLabel).pad(15).left().row();
+        topTable.add(columnLabel).pad(15).left().row();
+        topTable.add(comboLabel).pad(15).left().row();
+
+        // Bảng chứa nút Pause ở góc phải
+        Table actionTable = new Table();
+        actionTable.top().right();
+        actionTable.setFillParent(true);
 
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = font;
@@ -60,8 +82,11 @@ public class GameplayUI {
         table.add(scoreLabel).expandX().center().pad(15);
         table.add(comboLabel).right().pad(15);
         table.add(pauseButton).right().pad(15);
+        actionTable.add(pauseButton).pad(15);
 
-        stage.addActor(table);
+        // Chỉ add lên stage 1 lần
+        stage.addActor(topTable);
+        stage.addActor(actionTable);
     }
 
     public void updateScore(int score) {
@@ -80,10 +105,21 @@ public class GameplayUI {
         if (GameSettings.getInstance().showFPS) {
             fpsLabel.setVisible(true);
             fpsLabel.setText(Gdx.graphics.getFramesPerSecond() + " FPS");
-        } else {
-            fpsLabel.setVisible(false);
-        }
+    public void update(ScoreManager sm) {
+        this.scoreManager = sm;
 
+        // Cập nhật text liên tục ở đây
+        scoreLabel.setText("Score: " + sm.getCurrentScore());
+        columnLabel.setText("Steps: " + sm.getColumnsPassed());
+
+        if (sm.getCombo() > 1) {
+            comboLabel.setText("COMBO X" + sm.getCombo() + "!");
+        } else {
+            comboLabel.setText("");
+        }
+    }
+
+    public void render() {
         stage.act();
         stage.draw();
     }
@@ -94,5 +130,9 @@ public class GameplayUI {
 
     public void dispose() {
         stage.dispose();
+        // Cần giải phóng bộ nhớ của font để không bị memory leak của LibGDX
+        if (font != null) {
+            font.dispose();
+        }
     }
 }
