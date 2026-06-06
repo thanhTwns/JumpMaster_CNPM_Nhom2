@@ -20,6 +20,8 @@ public class GameOverOverlay {
     private Label scoreLabel, highScoreLabel, recordLabel;
     // ── 3.2.1.3b Stats labels ────────────────────────────────────────────────
     private Label columnsLabel, maxComboLabel, timeLabel;
+    // ── 3.2.1.3c Top 5 Leaderboard labels ───────────────────────────────────
+    private Label[] top5Labels;
     private final Texture backgroundTexture;
 
     public interface GameOverListener {
@@ -61,11 +63,19 @@ public class GameOverOverlay {
 
         // ── 3.2.1.3b Stats labels — dùng font nhỏ hơn để vừa màn hình ───
         BitmapFont smallFont = new BitmapFont();
-        smallFont.getData().setScale(1.5f); // nhỏ hơn font chính
-        Label.LabelStyle statsStyle = new Label.LabelStyle(smallFont, Color.CYAN);
-        columnsLabel  = new Label("Bậc: 0",        statsStyle);
-        maxComboLabel = new Label("Combo: 0x",     statsStyle);
-        timeLabel     = new Label("Time: 0s",      statsStyle);
+        smallFont.getData().setScale(1.5f);
+        Label.LabelStyle statsStyle  = new Label.LabelStyle(smallFont, Color.CYAN);
+        Label.LabelStyle top5Style   = new Label.LabelStyle(smallFont, Color.WHITE);
+        Label.LabelStyle top5Header  = new Label.LabelStyle(smallFont, Color.YELLOW);
+        columnsLabel  = new Label("Bậc: 0",    statsStyle);
+        maxComboLabel = new Label("Combo: 0x", statsStyle);
+        timeLabel     = new Label("Time: 0s",  statsStyle);
+
+        // ── 3.2.1.3c Top 5 Leaderboard labels ───────────────────────────
+        top5Labels = new Label[5];
+        for (int i = 0; i < 5; i++) {
+            top5Labels[i] = new Label("#" + (i+1) + "  ---", top5Style);
+        }
 
         TextButton btnRestart = new TextButton("RESTART", btnStyle);
         TextButton btnMenu    = new TextButton("MENU",    btnStyle);

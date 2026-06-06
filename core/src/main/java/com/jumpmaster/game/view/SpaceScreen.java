@@ -34,11 +34,20 @@ public class SpaceScreen extends BaseScreen {
     // Ship system — 6 loại phi thuyền, random mỗi lần spawn
     private Array<Body> planets;
     private Texture[] planetTexture;
-    private static final int PLANET_COUNT = 6;
-    private float stateTime = 0f;
+    private static final int   PLANET_COUNT = 6;
+    private float stateTime       = 0f;
     private float planetSpawnTimer = 0f;
 
-    private static final float PLANET_SPAWN_INTERVAL = 4.0f;
+    // ── UC-3.3.1 Dynamic Difficulty ─────────────────────────────────────────
+    // Màn 2 dùng thông số riêng, khắc nghiệt hơn màn 1.
+    // Gọi scoreManager.getCurrentScore() mỗi lần spawn (UC-3.3).
+    private static final float PLANET_INTERVAL_BASE = 4.0f;
+    private static final float PLANET_INTERVAL_MIN  = 1.2f;
+    private static final float PLANET_SPEED_BASE    = 2.5f;
+    private static final float PLANET_SPEED_MAX     = 6.0f;
+    private static final float SCORE_STEP           = 100f;
+    private static final float INTERVAL_PER_STEP    = 0.3f;
+    private static final float SPEED_PER_STEP       = 0.2f;
 
     public SpaceScreen(JumpMasterGame game) {
         super(game);
@@ -183,13 +192,33 @@ public class SpaceScreen extends BaseScreen {
     }
 
     // -------------------------------------------------------
-    // EXTRA UPDATE — ship spawn timer
+    // UC-3.3.1 DYNAMIC DIFFICULTY — tính interval và speed theo điểm
+    // Gọi scoreManager.getCurrentScore() mỗi lần spawn →
+    // luôn phản ánh tiến độ thực tế của người chơi (UC-3.3).
+    // -------------------------------------------------------
+    private float calcSpawnInterval() {
+        // UC-3.3.1: mỗi SCORE_STEP điểm giảm INTERVAL_PER_STEP giây, sàn PLANET_INTERVAL_MIN
+        float steps    = scoreManager.getCurrentScore() / SCORE_STEP;
+        float interval = PLANET_INTERVAL_BASE - steps * INTERVAL_PER_STEP;
+        return Math.max(interval, PLANET_INTERVAL_MIN);
+    }
+
+    private float calcPlanetSpeed() {
+        // UC-3.3.1: mỗi SCORE_STEP điểm tăng SPEED_PER_STEP, trần PLANET_SPEED_MAX
+        float steps = scoreManager.getCurrentScore() / SCORE_STEP;
+        float speed = PLANET_SPEED_BASE + steps * SPEED_PER_STEP;
+        return Math.min(speed, PLANET_SPEED_MAX);
+    }
+
+    // -------------------------------------------------------
+    // EXTRA UPDATE — planet spawn (UC-3.3.1: interval động)
     // -------------------------------------------------------
     @Override
     protected void onExtraUpdate(float delta) {
-        stateTime += delta;
+        stateTime        += delta;
         planetSpawnTimer += delta;
-        if (planetSpawnTimer >= PLANET_SPAWN_INTERVAL) {
+        // UC-3.3.1: tính interval tại thời điểm hiện tại dựa theo điểm
+        if (planetSpawnTimer >= calcSpawnInterval()) {
             spawnPlanet();
             planetSpawnTimer = 0f;
         }
@@ -265,7 +294,9 @@ public class SpaceScreen extends BaseScreen {
         planetBody.createFixture(fdef).setUserData("planet");
         shape.dispose();
 
-        planetBody.setLinearVelocity(fromLeft ? 2.5f : -2.5f, 0);
+        // UC-3.3.1: tốc độ tính động tại thời điểm spawn
+        float speed = calcPlanetSpeed();
+        planetBody.setLinearVelocity(fromLeft ? speed : -speed, 0);
         // userData: [tag, fromLeft, texture]
         planetBody.setUserData(new Object[]{"planet", fromLeft, chosenTex});
         planets.add(planetBody);

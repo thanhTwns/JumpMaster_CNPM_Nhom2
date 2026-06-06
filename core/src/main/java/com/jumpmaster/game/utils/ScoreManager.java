@@ -4,8 +4,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 
 public class ScoreManager {
-    private static final String PREFS_NAME = "JumpMasterPrefs";
+    private static final String PREFS_NAME    = "JumpMasterPrefs";
     private static final String KEY_HIGH_SCORE = "highScore";
+
+    // ── 3.2.1.3c Top 5 Leaderboard keys ─────────────────────────────────────
+    // Mỗi entry lưu 2 key: score_N và date_N (N = 0..4)
+    // Không lưu trùng điểm — nếu điểm đã tồn tại thì bỏ qua.
+    private static final int    TOP5_SIZE       = 5;
+    private static final String KEY_TOP5_SCORE  = "top5_score_"; // + index
+    private static final String KEY_TOP5_DATE   = "top5_date_";  // + index
+
     private Preferences prefs;
 
     private int currentScore;
@@ -120,5 +128,78 @@ public class ScoreManager {
 
     public void flush() {
         saveHighScore(currentScore);
+    }
+
+    // ── 3.2.1.3c Top 5 Leaderboard ───────────────────────────────────────────
+
+    /**
+     * Lưu điểm vào Top 5 nếu đủ điều kiện.
+     * Được gọi trong BaseScreen.triggerGameOver() sau flush().
+     * Logic: load danh sách hiện tại → thêm entry mới →
+     *        loại trùng điểm → sort giảm dần → giữ top 5 → lưu lại.
+     */
+    public void saveTopScores(int score) {
+        if (score <= 0) return;
+
+        // Load top 5 hiện tại
+        java.util.List<long[]> entries = loadTopEntries();
+
+        // Kiểm tra trùng điểm — nếu đã có thì không lưu thêm
+        for (long[] e : entries) {
+            if ((int) e[0] == score) return;
+        }
+
+        // Thêm entry mới: [score, timestamp]
+        long now = System.currentTimeMillis();
+        entries.add(new long[]{score, now});
+
+        // Sort giảm dần theo điểm
+        entries.sort((a, b) -> Integer.compare((int) b[0], (int) a[0]));
+
+        // Giữ tối đa TOP5_SIZE
+        if (entries.size() > TOP5_SIZE) {
+            entries = entries.subList(0, TOP5_SIZE);
+        }
+
+        // Ghi xuống Preferences
+        for (int i = 0; i < entries.size(); i++) {
+            prefs.putInteger(KEY_TOP5_SCORE + i, (int) entries.get(i)[0]);
+            prefs.putLong   (KEY_TOP5_DATE  + i,       entries.get(i)[1]);
+        }
+        // Xóa các slot thừa (khi danh sách ngắn hơn TOP5_SIZE)
+        for (int i = entries.size(); i < TOP5_SIZE; i++) {
+            prefs.remove(KEY_TOP5_SCORE + i);
+            prefs.remove(KEY_TOP5_DATE  + i);
+        }
+        prefs.flush();
+    }
+
+    /**
+     * Trả về danh sách Top 5 dưới dạng int[2][]:
+     *   result[i][0] = score
+     *   result[i][1] = timestamp (milliseconds)
+     * Được gọi trong BaseScreen.triggerGameOver() → setLeaderboard().
+     */
+    public long[][] getTopScores() {
+        java.util.List<long[]> entries = loadTopEntries();
+        long[][] result = new long[entries.size()][2];
+        for (int i = 0; i < entries.size(); i++) {
+            result[i][0] = entries.get(i)[0];
+            result[i][1] = entries.get(i)[1];
+        }
+        return result;
+    }
+
+    // Helper: load danh sách entry từ Preferences
+    private java.util.List<long[]> loadTopEntries() {
+        java.util.List<long[]> list = new java.util.ArrayList<>();
+        for (int i = 0; i < TOP5_SIZE; i++) {
+            if (prefs.contains(KEY_TOP5_SCORE + i)) {
+                int  s = prefs.getInteger(KEY_TOP5_SCORE + i, 0);
+                long d = prefs.getLong   (KEY_TOP5_DATE  + i, 0L);
+                if (s > 0) list.add(new long[]{s, d});
+            }
+        }
+        return list;
     }
 }

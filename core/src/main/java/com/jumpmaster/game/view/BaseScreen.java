@@ -437,7 +437,8 @@ public abstract class BaseScreen implements Screen {
         // vì flush() cập nhật highScore = currentScore
         boolean isNewRecord = scoreManager.getCurrentScore() > scoreManager.getHighScore();
         scoreManager.flush();
-
+        // 3.2.1.3c: cập nhật điểm số vào leaderboard
+        scoreManager.saveTopScores(scoreManager.getCurrentScore());
         // ── 3.2.1.3b lấy stats phiên trước khi reset ────────────────────
         int[] stats = scoreManager.getStats();
 

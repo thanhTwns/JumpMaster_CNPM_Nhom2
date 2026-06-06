@@ -345,13 +345,15 @@ public class MainScreen implements Screen {
         float ty = screenH - Gdx.input.getY();
 
         if (btnClassic.contains(tx, ty))
-            game.setScreen(new SpaceScreen(game));
+            game.setScreen(new EarthScreen(game, "classic"));
         else if (btnTimeAttack.contains(tx, ty))
             game.setScreen(new EarthScreen(game, "timeattack"));
         else if (btnChallenge.contains(tx, ty))
             game.setScreen(new EarthScreen(game, "challenge"));
         else if (btnSettings.contains(tx, ty))
             game.setScreen(new SettingsScreen(game));
+        else if (btnScores.contains(tx, ty)) //user xem điểm đã lưu từ 3.2.1.3c -> 3.2.2 gọi đối tượng LeaderboardScreen()
+            game.setScreen(new LeaderboardScreen(game));
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
