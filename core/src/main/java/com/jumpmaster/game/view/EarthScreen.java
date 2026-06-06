@@ -1,6 +1,7 @@
 package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -38,12 +39,13 @@ public class EarthScreen extends BaseScreen {
     private static final float BAT_SPAWN_INTERVAL = 4.0f;
     private static final int BAT_FRAME_COLS = 6;
     private static final int BAT_FRAME_ROWS = 1;
-
+    private float topPlatformY = 0f;
     public EarthScreen(JumpMasterGame game, String mode) {
         super(game);
         this.mode = mode;
     }
-
+    @Override
+    protected float getTopPlatformY() { return topPlatformY; }
     @Override
     protected void initBackground() {
         bgLayers = new Texture[]{
@@ -132,30 +134,35 @@ public class EarthScreen extends BaseScreen {
             // Chỉ tạo Platform bình thường
             platforms.add(new Platform(world, randomX, currentY, platformWidth, stepHeight, stepTexture));
 
-            if (i == 9) levelClearY = (currentY + stepHeight) / Constants.PPM;
+            if (i == 9) {
+                levelClearY  = (currentY + stepHeight) / Constants.PPM;
+                topPlatformY = currentY;   // ← thêm dòng này
+            }
             currentY += MathUtils.random(120f, 160f);
         }
     }
 
+    // Thay toàn bộ method thành:
     @Override
     protected void drawBackground() {
-        float vpW = Constants.VIEWPORT_WIDTH / Constants.PPM;
+        OrthographicCamera cam = getActiveCamera();
+        float vpW = Constants.VIEWPORT_WIDTH / Constants.PPM;   // metres
         float vpH = Constants.VIEWPORT_HEIGHT / Constants.PPM;
         float bgH = vpW * (240f / 320f);
-        float camLeft = camera.position.x - vpW / 2f;
+        float camLeft   = camera.position.x - vpW / 2f;
         float camBottom = camera.position.y - vpH / 2f;
 
-        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.setProjectionMatrix(camera.combined);   // ← metres
         game.batch.begin();
         for (int i = 0; i < bgLayers.length; i++) {
-            Texture tex = bgLayers[i];
-            float startY = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
-            float offsetY = (smoothCamY - startY) * bgScrollSpeeds[i];
+            Texture tex   = bgLayers[i];
+            float offsetY = (camera.position.y - vpH / 2f) * bgScrollSpeeds[i];
             int texW = tex.getWidth(), texH = tex.getHeight();
-            int srcWidth = (int) (vpW / bgH * texW);
-            int srcHeight = (int) (vpH / bgH * texH);
-            int srcY = (int) (offsetY * (texH / bgH));
-            game.batch.draw(tex, camLeft, camBottom, vpW, vpH, 0, -srcY, srcWidth, srcHeight, false, false);
+            int srcWidth  = (int)(vpW / bgH * texW);
+            int srcHeight = (int)(vpH / bgH * texH);
+            int srcY      = (int)(offsetY / bgH * texH);
+            game.batch.draw(tex, camLeft, camBottom, vpW, vpH,
+                0, -srcY, srcWidth, srcHeight, false, false);
         }
         game.batch.end();
     }

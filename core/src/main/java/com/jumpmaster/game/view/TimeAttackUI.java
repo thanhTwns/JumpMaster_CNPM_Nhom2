@@ -54,30 +54,6 @@ public class TimeAttackUI {
         stage = new Stage(new ScreenViewport(), batch);
         skin  = buildFallbackSkin();
 
-        // ── Nút Pause — copy y hệt cách GameplayUI làm ───────────────────
-        BitmapFont font = new BitmapFont();
-        font.getData().setScale(1.5f);
-
-        TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
-        style.font         = font;
-        style.fontColor    = Color.WHITE;
-        style.overFontColor = Color.YELLOW;
-
-        TextButton pauseButton = new TextButton("|| PAUSE", style);
-        pauseButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                listener.onPause();
-            }
-        });
-
-        // Table căn góc trên-phải, fill toàn màn hình — giống GameplayUI
-        Table table = new Table();
-        table.top().right();
-        table.setFillParent(true);
-        table.add(pauseButton).pad(15);
-
-        stage.addActor(table);  // FIX: trước đây thiếu dòng này nên nút không hiện
     }
 
     // ─────────────────────────────────────────────────────────────────────

@@ -1,6 +1,8 @@
 package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -16,6 +18,9 @@ import com.jumpmaster.game.controller.TimeAttackLogic;
 import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.utils.Constants;
 import com.jumpmaster.game.view.TimeAttackUI;
+// ── Thêm vào phần imports ──────────────────────────────────────────────
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 /**
  * TimeAttackScreen — Chế độ Time Attack.
@@ -48,6 +53,9 @@ public class TimeAttackScreen extends BaseScreen {
     private static final int   PLATFORM_COUNT = 80;
     private static final float GAP_MIN        = 90f;
     private static final float GAP_MAX        = 130f;
+    private Animation<TextureRegion> batAnimation;
+    private float         batStateTime = 0f;
+    private Texture       flyingHeadTexture;
 
     public TimeAttackScreen(JumpMasterGame game) {
         super(game);
@@ -56,7 +64,12 @@ public class TimeAttackScreen extends BaseScreen {
     // ──────────────────────────────────────────────────────────────────────
     //  BaseScreen — abstract implementations
     // ──────────────────────────────────────────────────────────────────────
-
+    private boolean showHealth = true;
+    public void setShowHealth(boolean show) {
+        this.showHealth = show;
+    }
+    @Override
+    protected float getTopPlatformY() { return topPlatformY; }
     @Override
     protected void initBackground() {
         bgLayers = new Texture[]{
@@ -84,7 +97,11 @@ public class TimeAttackScreen extends BaseScreen {
         for (Texture t : bgLayers)
             t.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
     }
-
+    @Override
+    public void show() {
+        super.show();  // BaseScreen.show() tạo player xong
+        if (taLogic != null) taLogic.setPlayer(player);  // inject player sau khi đã tạo
+    }
     @Override
     protected void initPlatforms() {
         // Contact listener — bat hit player
@@ -123,6 +140,16 @@ public class TimeAttackScreen extends BaseScreen {
         this.stepTexture = stepTex;
 
         batFrames           = loadBatFrames();
+        flyingHeadTexture = tryLoadTexture("ui-timeAttack/flying-head.png");
+        if (flyingHeadTexture != null) {
+            int frameW = flyingHeadTexture.getWidth() / 4;   // 4 frames ngang
+            int frameH = flyingHeadTexture.getHeight();
+            TextureRegion[][] tmp = TextureRegion.split(flyingHeadTexture, frameW, frameH);
+            TextureRegion[] frames = new TextureRegion[4];
+            for (int i = 0; i < 4; i++) frames[i] = tmp[0][i];
+            batAnimation = new Animation<>(1f / 8f, frames);
+            batAnimation.setPlayMode(Animation.PlayMode.LOOP);
+        }
         vortexTexture       = tryLoadTexture("ui-timeAttack/portal.png");
         if (vortexTexture == null)
             vortexTexture   = tryLoadTexture("ui-timeAttack/vortex.png");
@@ -161,58 +188,44 @@ public class TimeAttackScreen extends BaseScreen {
                 updateInputProcessors();
             }
         });
+        // Báo gameplayUI ẩn health mặc định:
+        if (gameplayUI != null) gameplayUI.setShowHealth(false);
     }
 
+    // Thay toàn bộ method thành:
     @Override
     protected void drawBackground() {
-        float vpW  = Constants.VIEWPORT_WIDTH  / Constants.PPM;
-        float vpH  = Constants.VIEWPORT_HEIGHT / Constants.PPM;
-        // background height scaled to viewport
-        float bgHm = vpW * (240f / 320f);
-
-        float camCY = camera.position.y;
+        OrthographicCamera cam = getActiveCamera();
+        float vpW   = Constants.VIEWPORT_WIDTH  / Constants.PPM;   // metres
+        float vpH   = Constants.VIEWPORT_HEIGHT / Constants.PPM;
+        float bgH   = vpW * (240f / 320f);
         float camLeft   = camera.position.x - vpW / 2f;
-        float camBottom = camCY - vpH / 2f;
+        float camBottom = camera.position.y - vpH / 2f;
 
         float totalMapH = (topPlatformY / Constants.PPM) + vpH;
         float progress  = MathUtils.clamp(
-            (camCY - vpH * 0.5f) / Math.max(totalMapH - vpH, 1f), 0f, 1f);
-
+            (camera.position.y - vpH * 0.5f) / Math.max(totalMapH - vpH, 1f), 0f, 1f);
         float alpha1 = 1f - MathUtils.clamp((progress - 0.33f) / 0.20f, 0f, 1f);
         float alpha2 =       MathUtils.clamp((progress - 0.33f) / 0.20f, 0f, 1f)
             -      MathUtils.clamp((progress - 0.66f) / 0.20f, 0f, 1f);
         float alpha3 =       MathUtils.clamp((progress - 0.66f) / 0.20f, 0f, 1f);
 
-        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.setProjectionMatrix(camera.combined);   // ← metres
         game.batch.begin();
-
         for (int i = 0; i < bgLayers.length; i++) {
-            Texture tex = bgLayers[i];
-
-            float scrollPx = camCY * Constants.PPM - Constants.VIEWPORT_HEIGHT / 2f;
-            float offsetY  = scrollPx * bgScrollSpeeds[i];
-
-            int texW      = tex.getWidth();
-            int texH      = tex.getHeight();
-            float bgHpx   = (Constants.VIEWPORT_WIDTH / Constants.PPM) * (240f / 320f) * Constants.PPM;
-            int srcWidth  = (int)(Constants.VIEWPORT_WIDTH  / bgHpx * texW);
-            int srcHeight = (int)(Constants.VIEWPORT_HEIGHT / bgHpx * texH);
-            int srcY      = (int)(offsetY / bgHpx * texH);
-
-            float alpha;
-            if      (i < 5)  alpha = alpha1;
-            else if (i < 10) alpha = alpha2;
-            else             alpha = alpha3;
+            float alpha = (i < 5) ? alpha1 : (i < 10) ? alpha2 : alpha3;
             if (alpha <= 0f) continue;
-
+            Texture tex   = bgLayers[i];
+            float offsetY = (camera.position.y - vpH / 2f) * bgScrollSpeeds[i];
+            int texW = tex.getWidth(), texH = tex.getHeight();
+            int srcWidth  = (int)(vpW / bgH * texW);
+            int srcHeight = (int)(vpH / bgH * texH);
+            int srcY      = (int)(offsetY / bgH * texH);
             game.batch.setColor(1f, 1f, 1f, alpha);
-            game.batch.draw(tex,
-                camLeft, camBottom, vpW, vpH,
-                0, -srcY, srcWidth, srcHeight,
-                false, false);
+            game.batch.draw(tex, camLeft, camBottom, vpW, vpH,
+                0, -srcY, srcWidth, srcHeight, false, false);
         }
-
-        game.batch.setColor(com.badlogic.gdx.graphics.Color.WHITE);
+        game.batch.setColor(Color.WHITE);
         game.batch.end();
     }
 
@@ -233,19 +246,43 @@ public class TimeAttackScreen extends BaseScreen {
     @Override
     protected void onExtraUpdate(float delta) {
         if (taLogic != null) taLogic.update(delta);
+        batStateTime += delta;   // CHANGE 3: advance animation timer
     }
 
     @Override
     protected void onExtraDraw() {
         if (taLogic == null) return;
 
-        // Vẽ entities có texture
+        // Vẽ platform bats (dùng batFrames vampire1..12)
         taLogic.drawEntities(game.batch);
 
-        // Vẽ fallback shape nếu không có texture
-        // (batch đang end() ở BaseScreen trước khi gọi onExtraDraw —
-        //  xem lại BaseScreen.render: onExtraDraw gọi TRONG game.batch.begin/end)
-        // → fallback phải vẽ sau khi batch kết thúc; dùng flag để vẽ ở onExtraShapeDraw()
+        // Vẽ flying bats bằng flying-head.png
+        if (flyingHeadTexture == null) return;
+        float w = 48f / Constants.PPM;
+        float h = 48f / Constants.PPM;
+
+        for (com.badlogic.gdx.physics.box2d.Body b : taLogic.getFlyingBats()) {
+            Object ud = b.getUserData();
+            boolean fromLeft = false;
+            if (ud instanceof Object[]) fromLeft = (Boolean)((Object[])ud)[1];
+            // fromLeft=true → bay sang phải → không flip
+            // fromLeft=false → bay sang trái → flip ngang
+            boolean flipX = !fromLeft;
+
+            float bx = b.getPosition().x;   // metres
+            float by = b.getPosition().y;   // metres
+
+            game.batch.draw(
+                flyingHeadTexture,
+                bx - w / 2f, by - h / 2f,  // vị trí (metres)
+                w / 2f, h / 2f,             // origin giữa để flip đúng
+                w, h,                       // kích thước (metres)
+                1f, 1f,                     // scale
+                0f,                         // rotation
+                0, 0,                       // srcX, srcY
+                flyingHeadTexture.getWidth(), flyingHeadTexture.getHeight(),
+                flipX, false);
+        }
     }
 
     /**
@@ -269,6 +306,8 @@ public class TimeAttackScreen extends BaseScreen {
             for (Texture t : bgLayers) if (t != null) t.dispose();
         if (batFrames    != null)
             for (Texture t : batFrames) if (t != null) t.dispose();
+        if (flyingHeadTexture     != null) flyingHeadTexture.dispose();
+        if (flyingHeadTexture != null) flyingHeadTexture.dispose();
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -290,7 +329,7 @@ public class TimeAttackScreen extends BaseScreen {
         super.render(delta);   // BaseScreen xử lý physics, platforms, player, overlays
 
         // TimeAttack HUD (chỉ khi đang chơi, không pause, không game over)
-        if (!isPaused && currentState != State.GAME_OVER) {
+        if (!isPaused && !isMapView && currentState != State.GAME_OVER) {
             renderTimeAttackHUD(delta);
         }
     }
@@ -299,26 +338,53 @@ public class TimeAttackScreen extends BaseScreen {
     //  Render TimeAttack HUD
     // ──────────────────────────────────────────────────────────────────────
 
+    // THAY renderTimeAttackHUD hoàn chỉnh:
     private void renderTimeAttackHUD(float delta) {
-        if (taUI == null || taLogic == null) return;
+        if (taLogic == null) return;
 
         float screenW = Gdx.graphics.getWidth();
         float screenH = Gdx.graphics.getHeight();
-
-        taUI.updateData(taLogic.getPlayerHealth(), taLogic.getCurrentLevel(), delta);
-
         Matrix4 screenOrtho = new Matrix4().setToOrtho2D(0, 0, screenW, screenH);
 
-        shapeRenderer.setProjectionMatrix(screenOrtho);
-        taUI.renderShapes(shapeRenderer, screenH);
+        float hp    = taLogic.getPlayerHealth();
+        float hpPct = hp / TimeAttackLogic.PLAYER_MAX_HEALTH;
+        float barX  = 20f;
+        float barY  = screenH - 56f;   // ngay dưới padding top
+        float barW  = 200f;
+        float barH  = 14f;
 
+        // ── Shape: nền + thanh + viền ─────────────────────────────────────
+        shapeRenderer.setProjectionMatrix(screenOrtho);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0.25f, 0.25f, 0.25f, 0.9f);
+        shapeRenderer.rect(barX, barY, barW, barH);
+        Color barColor = hpPct > 0.5f ? Color.GREEN
+            : hpPct > 0.25f ? new Color(1f, 0.55f, 0f, 1f) : Color.RED;
+        shapeRenderer.setColor(barColor);
+        shapeRenderer.rect(barX, barY, barW * hpPct, barH);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.WHITE);
+        shapeRenderer.rect(barX, barY, barW, barH);
+        shapeRenderer.end();
+
+        // ── Text: "HP: xx" bên phải thanh, "LEVEL x" góc phải ───────────
         game.batch.setProjectionMatrix(screenOrtho);
         game.batch.begin();
-        taUI.renderText(game.batch, hudFont, screenH);
+        hudFont.setColor(Color.WHITE);
+        hudFont.draw(game.batch,
+            "HP: " + (int) hp,
+            barX + barW + 8f,
+            barY + barH);
         game.batch.end();
 
-        taUI.getStage().act(delta);
-        taUI.getStage().draw();
+        // Stage buttons (pause trong taUI nếu có)
+        if (taUI != null) {
+            taUI.updateData(hp, taLogic.getCurrentLevel(), delta);
+            taUI.getStage().act(delta);
+            taUI.getStage().draw();
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -426,5 +492,13 @@ public class TimeAttackScreen extends BaseScreen {
             Gdx.app.log("TimeAttackScreen", "Failed to load: " + path);
         }
         return null;
+    }
+    @Override
+    protected void updateInputProcessors() {
+        super.updateInputProcessors();
+        if (taUI != null && !isMapView && currentState != State.GAME_OVER && !isPaused) {
+            multiplexer.addProcessor(1, taUI.getStage());   // index 1: sau mapViewAdapter
+        }
+        Gdx.input.setInputProcessor(multiplexer);
     }
 }
