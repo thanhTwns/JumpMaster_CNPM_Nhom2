@@ -541,29 +541,29 @@ public class MainScreen implements Screen {
         chickenTex.dispose();
     }
 
-    void showClassicPopup() {
+    public void showClassicPopup() {
         popupText = DESC_CLASSIC;
         selectedModeTag = "classic";
         isShowingPopup = true;
     }
 
-    void showTimeAttackPopup() {
+   public void showTimeAttackPopup() {
         popupText = DESC_TIME_ATTACK;
         selectedModeTag = "timeattack";
         isShowingPopup = true;
     }
 
-    void showChallengePopup() {
+   public void showChallengePopup() {
         popupText = DESC_CHALLENGE;
         selectedModeTag = "challenge";
         isShowingPopup = true;
     }
 
-    void closePopup() {
+    public void closePopup() {
         isShowingPopup = false;
     }
 
-    void startSelectedMode() {
+    public void startSelectedMode() {
 
         isShowingPopup = false;
 
@@ -577,15 +577,15 @@ public class MainScreen implements Screen {
             game.setScreen(new EarthScreen(game, "challenge"));
         }
     }
-    boolean isShowingPopup() {
+    public boolean isShowingPopup() {
         return isShowingPopup;
     }
 
-    String getPopupText() {
+    public String getPopupText() {
         return popupText;
     }
 
-    String getSelectedModeTag() {
+    public String getSelectedModeTag() {
         return selectedModeTag;
     }
 }
