@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.jumpmaster.game.GameSettings;
@@ -30,18 +31,13 @@ public class SettingsScreen implements Screen {
     private SpriteBatch batch;
     private ShapeRenderer sr;
 
-    // sử dụng lại assets từ main
     private static final Color BG = new Color(0.05f, 0.05f, 0.10f, 1f);
     private static final Color RED = new Color(0.91f, 0.27f, 0.37f, 1f);
-    private static final Color WHITE = new Color(Color.WHITE);
-    private static final Color PURPLE = new Color(0.50f, 0.47f, 0.87f, 1f);
+    private static final Color YELLOW = new Color(Color.YELLOW);
 
     private BitmapFont fontLarge;
     private BitmapFont fontMedium;
     private BitmapFont fontSmall;
-
-    private float t = 0;
-    private int screenW, screenH;
 
     public SettingsScreen(JumpMasterGame game) {
         this.game = game;
@@ -59,14 +55,15 @@ public class SettingsScreen implements Screen {
         buildUI();
     }
 
-    // load font theo size
+    // UC 1.1: Cập nhật font chữ phù hợp với thiết kế Settings mới
     private void loadFonts() {
-        if (fontLarge != null)
-            fontLarge.dispose();
-        if (fontMedium != null)
-            fontMedium.dispose();
-        if (fontSmall != null)
-            fontSmall.dispose();
+        loadFonts(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    }
+
+    private void loadFonts(int width, int height) {
+        if (fontLarge != null) fontLarge.dispose();
+        if (fontMedium != null) fontMedium.dispose();
+        if (fontSmall != null) fontSmall.dispose();
 
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(
                 Gdx.files.internal("font/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf"));
@@ -78,30 +75,26 @@ public class SettingsScreen implements Screen {
         p.minFilter = Texture.TextureFilter.MipMapLinearNearest;
         p.magFilter = Texture.TextureFilter.Linear;
 
-        float base = Math.min(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        float base = Math.min(width, height);
 
-        p.size = Math.round(base * 0.1f);
+        p.size = Math.round(base * 0.12f);
         p.color = RED;
-        p.borderWidth = 1.5f;
-        p.borderColor = RED;
         fontLarge = generator.generateFont(p);
 
-        p.size = Math.round(base * 0.05f);
-        p.color = Color.WHITE;
-        p.borderWidth = 0f;
+        p.size = Math.round(base * 0.06f);
+        p.color = RED;
         fontMedium = generator.generateFont(p);
 
-        p.size = Math.round(base * 0.035f);
-        p.color = WHITE;
+        p.size = Math.round(base * 0.04f);
+        p.color = Color.WHITE;
         fontSmall = generator.generateFont(p);
 
         generator.dispose();
     }
 
-    // tạo element
+    // UC 1.1: Tạo các Style mới cho SelectBox, Slider và CheckBox theo mẫu thiết kế
     private void createSkin() {
-        if (skin != null)
-            skin.dispose();
+        if (skin != null) skin.dispose();
         skin = new Skin();
         skin.add("default-font", fontSmall);
 
@@ -114,20 +107,18 @@ public class SettingsScreen implements Screen {
         pixmap.fill();
         skin.add("red", new Texture(pixmap));
 
-        pixmap.setColor(PURPLE);
+        pixmap.setColor(0.2f, 0.2f, 0.2f, 1f);
         pixmap.fill();
-        skin.add("purple", new Texture(pixmap));
+        skin.add("dark_grey", new Texture(pixmap));
 
-        // volume slider
         Slider.SliderStyle sliderStyle = new Slider.SliderStyle();
         sliderStyle.background = skin.newDrawable("white", Color.GRAY);
-        sliderStyle.background.setMinHeight(10);
+        sliderStyle.background.setMinHeight(6);
         sliderStyle.knob = skin.newDrawable("red");
-        sliderStyle.knob.setMinWidth(20);
-        sliderStyle.knob.setMinHeight(30);
+        sliderStyle.knob.setMinWidth(22);
+        sliderStyle.knob.setMinHeight(22);
         skin.add("default-horizontal", sliderStyle);
 
-        // toggle trigger
         CheckBox.CheckBoxStyle checkBoxStyle = new CheckBox.CheckBoxStyle();
         checkBoxStyle.font = fontSmall;
         checkBoxStyle.fontColor = Color.WHITE;
@@ -139,57 +130,78 @@ public class SettingsScreen implements Screen {
         checkBoxStyle.checkboxOn.setMinHeight(25);
         skin.add("default", checkBoxStyle);
 
-        // label
-        Label.LabelStyle labelLarge = new Label.LabelStyle();
-        labelLarge.font = fontLarge;
-        labelLarge.fontColor = Color.WHITE;
-        skin.add("large", labelLarge);
+        List.ListStyle listStyle = new List.ListStyle();
+        listStyle.font = fontSmall;
+        listStyle.fontColorSelected = Color.WHITE;
+        listStyle.fontColorUnselected = Color.LIGHT_GRAY;
+        listStyle.selection = skin.newDrawable("red");
+        listStyle.background = skin.newDrawable("dark_grey");
+        skin.add("default", listStyle);
 
-        Label.LabelStyle labelMedium = new Label.LabelStyle();
-        labelMedium.font = fontMedium;
-        labelMedium.fontColor = Color.WHITE;
-        skin.add("medium", labelMedium);
+        ScrollPane.ScrollPaneStyle scrollPaneStyle = new ScrollPane.ScrollPaneStyle();
+        scrollPaneStyle.background = skin.newDrawable("dark_grey");
+        skin.add("default", scrollPaneStyle);
 
-        Label.LabelStyle labelSmall = new Label.LabelStyle();
-        labelSmall.font = fontSmall;
-        labelSmall.fontColor = Color.WHITE;
-        skin.add("small", labelSmall);
+        SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+        selectBoxStyle.font = fontSmall;
+        selectBoxStyle.fontColor = Color.WHITE;
+        selectBoxStyle.background = skin.newDrawable("dark_grey");
+        selectBoxStyle.scrollStyle = scrollPaneStyle;
+        selectBoxStyle.listStyle = listStyle;
+        selectBoxStyle.overFontColor = RED;
+        skin.add("default", selectBoxStyle);
 
-        // chọn small làm font default
-        skin.add("default", labelSmall);
+        skin.add("large", new Label.LabelStyle(fontLarge, Color.WHITE));
+        skin.add("medium", new Label.LabelStyle(fontMedium, Color.WHITE));
+        skin.add("small", new Label.LabelStyle(fontSmall, Color.WHITE));
 
-        // button
-        TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
-        textButtonStyle.font = fontMedium;
-        textButtonStyle.fontColor = Color.WHITE;
-        textButtonStyle.overFontColor = RED;
-        textButtonStyle.downFontColor = Color.GRAY;
-        skin.add("default", textButtonStyle);
-
-        TextButton.TextButtonStyle smallBtnStyle = new TextButton.TextButtonStyle();
-        smallBtnStyle.font = fontSmall;
-        smallBtnStyle.fontColor = Color.WHITE;
-        smallBtnStyle.overFontColor = RED;
-        smallBtnStyle.downFontColor = Color.GRAY;
-        skin.add("small", smallBtnStyle);
+        TextButton.TextButtonStyle backStyle = new TextButton.TextButtonStyle();
+        backStyle.font = fontSmall;
+        backStyle.fontColor = Color.WHITE;
+        backStyle.overFontColor = RED;
+        skin.add("back", backStyle);
 
         pixmap.dispose();
     }
 
+    // UC 1.1: Xây dựng UI Settings với sự căn chỉnh Slider và SelectBox thẳng hàng
     private void buildUI() {
-        Table table = new Table();
-        table.setFillParent(true);
-        table.center();
-
-        Label title = new Label("SETTINGS", skin, "large");
-        table.add(title).padBottom(50).colspan(2).row();
-
         final GameSettings settings = GameSettings.getInstance();
 
-        // music slider
-        Label musicLabel = new Label("Music Volume", skin, "small");
-        table.add(musicLabel).left().padRight(20);
+        // Nút Back ở góc trên bên phải
+        Table topTable = new Table();
+        topTable.setFillParent(true);
+        topTable.top().right();
+        TextButton backBtn = new TextButton("BACK TO MENU", skin, "back");
+        backBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                settings.save();
+                game.setScreen(new MainScreen(game));
+            }
+        });
+        topTable.add(backBtn).pad(20);
+        stage.addActor(topTable);
 
+        // Table chính (chứa toàn bộ nội dung)
+        Table mainTable = new Table();
+        mainTable.setFillParent(true);
+        mainTable.center();
+
+        // Tiêu đề SETTINGS
+        Label title = new Label("SETTINGS", skin, "large");
+        title.setColor(RED);
+        mainTable.add(title).padBottom(40).row();
+
+        Label soundHeader = new Label("SOUND", skin, "medium");
+        soundHeader.setColor(RED);
+        mainTable.add(soundHeader).padBottom(20).row();
+
+        Table soundTable = new Table();
+        soundTable.columnDefaults(0).left().padRight(40);
+        soundTable.columnDefaults(1).left();
+
+        soundTable.add(new Label("Music Volume", skin, "small")).padBottom(15);
         final Slider musicSlider = new Slider(0, 1, 0.05f, false, skin);
         musicSlider.setValue(settings.musicVolume);
         musicSlider.addListener(new ChangeListener() {
@@ -199,12 +211,10 @@ public class SettingsScreen implements Screen {
                 com.jumpmaster.game.AudioManager.getInstance().updateMusicVolume();
             }
         });
-        table.add(musicSlider).width(200).padBottom(15).row();
+        soundTable.add(musicSlider).width(250).padBottom(15).row();
 
-        // sfx slider
-        Label sfxLabel = new Label("SFX Volume", skin, "small");
-        table.add(sfxLabel).left().padRight(20);
-
+        // SFX Volume
+        soundTable.add(new Label("SFX Volume", skin, "small")).padBottom(15);
         final Slider sfxSlider = new Slider(0, 1, 0.05f, false, skin);
         sfxSlider.setValue(settings.sfxVolume);
         sfxSlider.addListener(new ChangeListener() {
@@ -213,9 +223,17 @@ public class SettingsScreen implements Screen {
                 settings.sfxVolume = sfxSlider.getValue();
             }
         });
-        table.add(sfxSlider).width(200).padBottom(30).row();
+        soundTable.add(sfxSlider).width(250).padBottom(15).row();
+        mainTable.add(soundTable).padBottom(40).row();
 
-        // toggle buttons
+        // UC-1.1: Cập nhật phần DISPLAY (Trajectory và FPS Counter)
+        Label displayHeader = new Label("DISPLAY", skin, "medium");
+        displayHeader.setColor(RED);
+        mainTable.add(displayHeader).padBottom(20).row();
+
+        Table optionsTable = new Table();
+        optionsTable.columnDefaults(0).left();
+
         final CheckBox trajectoryCb = new CheckBox(" Show Trajectory", skin);
         trajectoryCb.setChecked(settings.showTrajectory);
         trajectoryCb.addListener(new ChangeListener() {
@@ -224,7 +242,7 @@ public class SettingsScreen implements Screen {
                 settings.showTrajectory = trajectoryCb.isChecked();
             }
         });
-        table.add(trajectoryCb).colspan(2).left().padBottom(15).row();
+        optionsTable.add(trajectoryCb).padBottom(15).row();
 
         final CheckBox fpsCb = new CheckBox(" Show FPS Counter", skin);
         fpsCb.setChecked(settings.showFPS);
@@ -234,84 +252,50 @@ public class SettingsScreen implements Screen {
                 settings.showFPS = fpsCb.isChecked();
             }
         });
-        table.add(fpsCb).colspan(2).left().padBottom(25).row();
+        optionsTable.add(fpsCb).padBottom(20).row();
+        mainTable.add(optionsTable).row();
 
-        // chọn mode màn hình
-        table.add(new Label("Display Mode: ", skin, "small")).left().padRight(30);
+        // UC-1.1: Sử dụng SelectBox cho Display Mode theo yêu cầu
+        Table modeRow = new Table();
+        modeRow.add(new Label("Display Mode: ", skin, "small")).padRight(15);
 
-        Table modeTable = new Table();
-        final String[] modes = { " DEFAULT ", " MAXIMIZED ", " FULLSCREEN " };
-        final Label modeLabel = new Label(modes[MathUtils.clamp(settings.displayMode, 0, modes.length - 1)], skin,
-                "small");
-        modeLabel.setAlignment(com.badlogic.gdx.utils.Align.center);
-
-        TextButton leftArrow = new TextButton("< ", skin, "small");
-        TextButton rightArrow = new TextButton(" >", skin, "small");
-
-        leftArrow.addListener(new ClickListener() {
+        final String[] modes = { "DEFAULT", "MAXIMIZED", "FULLSCREEN" };
+        final SelectBox<String> selectBox = new SelectBox<>(skin);
+        selectBox.setItems(modes);
+        selectBox.setSelectedIndex(MathUtils.clamp(settings.displayMode, 0, modes.length - 1));
+        selectBox.addListener(new ChangeListener() {
             @Override
-            public void clicked(InputEvent event, float x, float y) {
-                settings.displayMode--;
-                if (settings.displayMode < 0)
-                    settings.displayMode = modes.length - 1;
-                modeLabel.setText(modes[settings.displayMode]);
-                applyDisplayMode(settings.displayMode);
+            public void changed(ChangeEvent event, Actor actor) {
+                settings.displayMode = selectBox.getSelectedIndex();
+                settings.applyDisplayMode();
             }
         });
+        modeRow.add(selectBox).width(160);
+        mainTable.add(modeRow).center().row();
 
-        rightArrow.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                settings.displayMode++;
-                if (settings.displayMode >= modes.length)
-                    settings.displayMode = 0;
-                modeLabel.setText(modes[settings.displayMode]);
-                applyDisplayMode(settings.displayMode);
-            }
-        });
-
-        modeTable.add(leftArrow).padRight(10);
-        modeTable.add(modeLabel).width(140);
-        modeTable.add(rightArrow).padLeft(10);
-        table.add(modeTable).left().padBottom(0).row();
-
-        // save option và quay lại main
-        TextButton backBtn = new TextButton("BACK TO MENU", skin);
-        backBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                settings.save();
-                game.setScreen(new MainScreen(game));
-            }
-        });
-        table.add(backBtn).colspan(2).padTop(20).row();
-
-        stage.addActor(table);
-    }
-
-    private void applyDisplayMode(int mode) {
-        GameSettings.getInstance().displayMode = mode;
-        GameSettings.getInstance().applyDisplayMode();
+        stage.addActor(mainTable);
     }
 
     @Override
     public void render(float delta) {
-        t += delta;
         ScreenUtils.clear(BG.r, BG.g, BG.b, 1);
 
+        batch.setProjectionMatrix(stage.getCamera().combined);
         sr.setProjectionMatrix(stage.getCamera().combined);
+
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.10f, 0.10f, 0.23f, 1f);
-        sr.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight() * 0.13f);
+        sr.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight() * 0.12f);
         sr.end();
 
         stage.act(delta);
         stage.draw();
 
+        // UC 1.1: Cập nhật hiển thị FPS màu vàng ở góc trái phía trên
         if (GameSettings.getInstance().showFPS) {
             batch.begin();
-            fontSmall.setColor(Color.WHITE);
-            fontSmall.draw(batch, Gdx.graphics.getFramesPerSecond() + " FPS", 10, Gdx.graphics.getHeight() - 10);
+            fontSmall.setColor(YELLOW);
+            fontSmall.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 15, Gdx.graphics.getHeight() - 15);
             batch.end();
         }
     }
@@ -319,28 +303,15 @@ public class SettingsScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
-
-        // Reload fonts and skin to scale with new resolution
-        loadFonts();
+        loadFonts(width, height);
         createSkin();
-
-        // Rebuild the UI table to use the new skin/fonts
         stage.clear();
         buildUI();
     }
 
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
-        dispose();
-    }
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() { dispose(); }
 
     @Override
     public void dispose() {
