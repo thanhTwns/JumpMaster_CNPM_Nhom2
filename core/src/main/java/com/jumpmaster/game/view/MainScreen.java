@@ -571,7 +571,7 @@ public class MainScreen implements Screen {
             game.setScreen(new EarthScreen(game, "classic"));
         }
         else if ("timeattack".equals(selectedModeTag)) {
-            game.setScreen(new EarthScreen(game, "timeattack"));
+            game.setScreen(new TimeAttackScreen(game));
         }
         else if ("challenge".equals(selectedModeTag)) {
             game.setScreen(new EarthScreen(game, "challenge"));
