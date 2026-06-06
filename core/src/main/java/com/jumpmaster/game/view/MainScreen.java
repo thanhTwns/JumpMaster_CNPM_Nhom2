@@ -500,39 +500,30 @@ public class MainScreen implements Screen {
         float ty = screenH - Gdx.input.getY();
 
         if (isShowingPopup) {
-            // BACK
+
             if (btnBack.contains(tx, ty)) {
-                isShowingPopup = false;
+                closePopup();
                 return;
             }
-            // START
+
             if (btnXacNhan.contains(tx, ty)) {
-
-                isShowingPopup = false;
-
-                if ("classic".equals(selectedModeTag)) {
-                    game.setScreen(new EarthScreen(game, "classic"));
-                }
-                else if ("timeattack".equals(selectedModeTag)) {
-                    game.setScreen(new EarthScreen(game, "timeattack"));
-                }
-                else if ("challenge".equals(selectedModeTag)) {
-                    game.setScreen(new EarthScreen(game, "challenge"));
-                }
-
+                startSelectedMode();
                 return;
             }
+
             return;
         }
         if (btnClassic.contains(tx, ty)) {
-            popupText = DESC_CLASSIC;
-            selectedModeTag = "classic";
-            isShowingPopup = true;
+            showClassicPopup();
         }
         else if (btnTimeAttack.contains(tx, ty)) {
-            popupText = DESC_TIME_ATTACK;
-            selectedModeTag = "timeattack";
-            isShowingPopup = true;
+            showTimeAttackPopup();
+        }
+        else if (btnChallenge.contains(tx, ty)) {
+            showChallengePopup();
+        }
+        else if (btnSettings.contains(tx, ty)) {
+            game.setScreen(new SettingsScreen(game));
         }
         else if (btnChallenge.contains(tx, ty)) {
             popupText = DESC_CHALLENGE;
@@ -560,4 +551,52 @@ public class MainScreen implements Screen {
         iconTrophy.dispose();
         chickenTex.dispose();
     }
+    void showClassicPopup() {
+        popupText = DESC_CLASSIC;
+        selectedModeTag = "classic";
+        isShowingPopup = true;
+    }
+
+    void showTimeAttackPopup() {
+        popupText = DESC_TIME_ATTACK;
+        selectedModeTag = "timeattack";
+        isShowingPopup = true;
+    }
+
+    void showChallengePopup() {
+        popupText = DESC_CHALLENGE;
+        selectedModeTag = "challenge";
+        isShowingPopup = true;
+    }
+
+    void closePopup() {
+        isShowingPopup = false;
+    }
+
+    void startSelectedMode() {
+
+        isShowingPopup = false;
+
+        if ("classic".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "classic"));
+        }
+        else if ("timeattack".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "timeattack"));
+        }
+        else if ("challenge".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "challenge"));
+        }
+    }
+    boolean isShowingPopup() {
+        return isShowingPopup;
+    }
+
+    String getPopupText() {
+        return popupText;
+    }
+
+    String getSelectedModeTag() {
+        return selectedModeTag;
+    }
 }
+
