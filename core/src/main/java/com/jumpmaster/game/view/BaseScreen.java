@@ -73,7 +73,7 @@ public abstract class BaseScreen implements Screen {
     protected InputHandler inputHandler;
     protected ExtendViewport viewport;
 
-    protected Player player;
+    public Player player;
     protected Array<Platform> platforms;
     protected ObjectSet<Platform> visitedPlatforms = new ObjectSet<>();
     protected Platform groundPlatform; // mặt đất — không tính điểm khi chạm
@@ -95,9 +95,9 @@ public abstract class BaseScreen implements Screen {
     protected boolean isPaused = false;
     protected GameplayUI gameplayUI;
     protected PauseOverlay pauseOverlay;
-    protected GameOverOverlay gameOverOverlay;
+    public GameOverOverlay gameOverOverlay;
     protected InputMultiplexer multiplexer;
-    protected ScoreManager scoreManager;
+    public ScoreManager scoreManager;
 
     protected static final float DEATH_Y = -0.5f;
 
@@ -414,7 +414,7 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     // TRIGGER GAME OVER
     // -------------------------------------------------------
-    protected void triggerGameOver() {
+    public void triggerGameOver() {
         if (currentState == State.GAME_OVER)
             return;
         currentState = State.GAME_OVER;

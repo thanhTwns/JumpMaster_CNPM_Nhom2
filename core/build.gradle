@@ -10,8 +10,10 @@ dependencies {
   api "com.crashinvaders.lml:gdx-lml:$lmlVersion"
   api "com.github.kotcrab.vis-ui:vis-ui:$visUiVersion"
   api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.mockito:mockito-core:4.11.0'
 
-  if(enableGraalNative == 'true') {
+    if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
   }
 }
