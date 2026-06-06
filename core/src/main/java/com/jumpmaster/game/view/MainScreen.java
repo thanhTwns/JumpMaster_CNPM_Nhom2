@@ -55,9 +55,10 @@ public class MainScreen implements Screen {
     private float bobT = 0;
     private float t    = 0;
 
-    // Nút bấm
-    private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores;
+    // UC-1.2: Chọn chế độ chơi - Khai báo vùng nhấn cho các chế độ và nút EXIT
+    private Rectangle btnClassic, btnTimeAttack, btnChallenge, btnSettings, btnScores, btnExit;
 
+    // UC-1.2: Chọn chế độ chơi - Nội dung mô tả cho từng chế độ
     private static final String DESC_CLASSIC =
         "CLASSIC MODE:\n" +
             "- Jump across platforms and reach the highest score.\n" +
@@ -118,8 +119,12 @@ public class MainScreen implements Screen {
         screenH = height;
 
         // Sync projection matrices FIRST
-        batch.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH);
-        sr.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH);
+        Gdx.gl.glViewport(0, 0, width, height);
+        if (batch != null) batch.setProjectionMatrix(batch.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH));
+        if (sr != null) sr.setProjectionMatrix(sr.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH));
+        if (shapeRenderer != null) {
+            shapeRenderer.setProjectionMatrix(shapeRenderer.getProjectionMatrix().setToOrtho2D(0, 0, screenW, screenH));
+        }
 
         // Rebuild fonts at new size (dispose old ones first)
         loadFonts();
@@ -216,23 +221,26 @@ public class MainScreen implements Screen {
         }
     }
 
+    // UC-1.2: Chọn chế độ chơi - Cấu hình khung ngắn lại đồng nhất và dịch icon xuống sát cạnh dưới
     private void setupButtons() {
         float W  = screenW, H = screenH;
-        float btnW    = W * 0.68f;
-        float btnH    = H * 0.085f;
+        float btnW    = W * 0.42f; // UC-1.2: Độ dài khung đồng nhất cho các nút mode
+        float btnH    = H * 0.075f;
         float centerX = (W - btnW) / 2f;
-        float startY  = H * 0.50f;
-        float gap     = btnH + H * 0.018f;
+        float startY  = H * 0.60f; // UC-1.2: Hạ thấp startY để giao diện không bị nhít lên quá
+        float gap     = btnH + H * 0.025f;
 
         btnClassic    = new Rectangle(centerX, startY,         btnW, btnH);
         btnTimeAttack = new Rectangle(centerX, startY - gap,   btnW, btnH);
         btnChallenge  = new Rectangle(centerX, startY - gap*2, btnW, btnH);
+        btnExit       = new Rectangle(centerX, startY - gap*3, btnW, btnH);
 
-        float iconSize = H * 0.09f;
-        float iconY    = startY - gap*2 - iconSize - H * 0.035f;
-        float iconGap  = W * 0.09f;
-        btnSettings = new Rectangle(W/2f - iconSize - iconGap, iconY, iconSize, iconSize);
-        btnScores   = new Rectangle(W/2f + iconGap,            iconY, iconSize, iconSize);
+        // UC-1.2: Settings và Scores ngắn lại vừa phải nhưng đồng nhất kích thước và dịch xuống dưới sát cạnh
+        float subBtnW = W * 0.30f;
+        float iconY    = H * 0.05f; // Dịch xuống sát dưới cạnh theo yêu cầu
+        float iconGap  = W * 0.04f;
+        btnSettings = new Rectangle(W/2f - subBtnW - iconGap, iconY, subBtnW, btnH);
+        btnScores   = new Rectangle(W/2f + iconGap,           iconY, subBtnW, btnH);
     }
 
     // ── Render ───────────────────────────────────────────────────────────────
@@ -259,6 +267,9 @@ public class MainScreen implements Screen {
         drawGround();
         drawColumns();
 
+        // UC-1.2: Chọn chế độ chơi - Vẽ nền màu tối và khung cho tất cả các nút bấm
+        drawButtonFrames();
+
         // All batch draws after
         batch.begin();
         drawCharacter();
@@ -266,109 +277,67 @@ public class MainScreen implements Screen {
         drawText();
         batch.end();
 
-        //popup game rules
-        if (isShowingPopup) {
-
-            float popupW = screenW * 0.75f;
-            float popupH = screenH * 0.55f;
-            float popupX = (screenW - popupW) / 2;
-            float popupY = (screenH - popupH) / 2;
-
-            // =====================
-            // VẼ NỀN POPUP
-            // =====================
-
-
-            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-            // nền tối toàn màn hình
-            shapeRenderer.setColor(0, 0, 0, 0.75f);
-            shapeRenderer.rect(0, 0, screenW, screenH);
-
-            // bóng popup
-            shapeRenderer.setColor(0f, 0f, 0f, 0.4f);
-            shapeRenderer.rect(
-                popupX + 8,
-                popupY - 8,
-                popupW,
-                popupH
-            );
-
-            // nền popup
-            shapeRenderer.setColor(0.12f, 0.15f, 0.22f, 1);
-            shapeRenderer.rect(
-                popupX,
-                popupY,
-                popupW,
-                popupH
-            );
-
-
-
-            shapeRenderer.end();
-
-
-
-            batch.begin();
-
-
-            fontMedium.setColor(Color.GOLD);
-
-            fontMedium.draw(
-                batch,
-                "GAME RULES",
-                popupX + popupW/2 - 90,
-                popupY + popupH - 35
-            );
-
-            // đường kẻ dưới tiêu đề
-            fontSmall.setColor(Color.LIGHT_GRAY);
-
-            fontSmall.draw(
-                batch,
-                "----------------------------",
-                popupX + 40,
-                popupY + popupH - 60
-            );
-
-
-            fontSmall.setColor(Color.WHITE);
-
-            fontSmall.draw(
-                batch,
-                popupText,
-                popupX + 40,
-                popupY + popupH - 100,
-                popupW - 80,
-                Align.left,
-                true
-            );
-
-
-            fontMedium.setColor(Color.WHITE);
-
-            GlyphLayout layout = new GlyphLayout(fontMedium, "START");
-
-            fontMedium.draw(
-                batch,
-                "START",
-                btnXacNhan.x + (btnXacNhan.width - layout.width) / 2,
-                btnXacNhan.y + (btnXacNhan.height + layout.height) / 2
-            );
-            GlyphLayout backLayout = new GlyphLayout(fontMedium, "BACK");
-
-            fontMedium.draw(
-                batch,
-                "BACK",
-                btnBack.x + (btnBack.width - backLayout.width) / 2,
-                btnBack.y + (btnBack.height + backLayout.height) / 2
-            );
-
-            batch.end();
-        }
+        // UC-1.2: Hiển thị popup hướng dẫn chế độ chơi
+        if (isShowingPopup) drawPopup();
     }
 
-    // ── Draw helpers ─────────────────────────────────────────────────────────
+    // UC-1.2: Chọn chế độ chơi - Hàm vẽ nền màu tối và khung viền màu sắc tương ứng cho các nút
+    private void drawButtonFrames() {
+        // 1. Vẽ nền DARK_BTN cho tất cả các khung để giao diện đồng bộ
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setColor(DARK_BTN);
+        sr.rect(btnClassic.x, btnClassic.y, btnClassic.width, btnClassic.height);
+        sr.rect(btnTimeAttack.x, btnTimeAttack.y, btnTimeAttack.width, btnTimeAttack.height);
+        sr.rect(btnChallenge.x, btnChallenge.y, btnChallenge.width, btnChallenge.height);
+        sr.rect(btnExit.x, btnExit.y, btnExit.width, btnExit.height);
+        sr.rect(btnSettings.x, btnSettings.y, btnSettings.width, btnSettings.height);
+        sr.rect(btnScores.x, btnScores.y, btnScores.width, btnScores.height);
+        sr.end();
+
+        // 2. Vẽ khung viền (Line) với màu sắc tương ứng để làm nổi bật nút
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        sr.setColor(WHITE);
+        sr.rect(btnClassic.x, btnClassic.y, btnClassic.width, btnClassic.height);
+        sr.setColor(RED);
+        sr.rect(btnTimeAttack.x, btnTimeAttack.y, btnTimeAttack.width, btnTimeAttack.height);
+        sr.setColor(new Color(0.68f, 0.62f, 1f, 1f));
+        sr.rect(btnChallenge.x, btnChallenge.y, btnChallenge.width, btnChallenge.height);
+        sr.setColor(Color.GRAY);
+        sr.rect(btnExit.x, btnExit.y, btnExit.width, btnExit.height);
+
+        // Khung cho Settings và Scores dùng chung màu trắng đồng bộ
+        sr.setColor(WHITE);
+        sr.rect(btnSettings.x, btnSettings.y, btnSettings.width, btnSettings.height);
+        sr.rect(btnScores.x, btnScores.y, btnScores.width, btnScores.height);
+        sr.end();
+    }
+
+    private void drawPopup() {
+        float popupW = screenW * 0.75f;
+        float popupH = screenH * 0.55f;
+        float popupX = (screenW - popupW) / 2;
+        float popupY = (screenH - popupH) / 2;
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0, 0, 0, 0.75f);
+        shapeRenderer.rect(0, 0, screenW, screenH);
+        shapeRenderer.setColor(0.12f, 0.15f, 0.22f, 1);
+        shapeRenderer.rect(popupX, popupY, popupW, popupH);
+        shapeRenderer.end();
+
+        batch.begin();
+        fontMedium.setColor(Color.GOLD);
+        fontMedium.draw(batch, "GAME RULES", popupX + popupW/2 - 90, popupY + popupH - 35);
+        fontSmall.setColor(Color.WHITE);
+        fontSmall.draw(batch, popupText, popupX + 40, popupY + popupH - 100, popupW - 80, Align.left, true);
+        fontMedium.setColor(Color.WHITE);
+        GlyphLayout layoutStart = new GlyphLayout(fontMedium, "START");
+        fontMedium.draw(batch, "START", btnXacNhan.x + (btnXacNhan.width - layoutStart.width) / 2, btnXacNhan.y + (btnXacNhan.height + layoutStart.height) / 2);
+        GlyphLayout layoutBack = new GlyphLayout(fontMedium, "BACK");
+        fontMedium.draw(batch, "BACK", btnBack.x + (btnBack.width - layoutBack.width) / 2, btnBack.y + (btnBack.height + layoutBack.height) / 2);
+        batch.end();
+    }
+
     private void drawStars() {
         sr.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < STAR_COUNT; i++) {
@@ -380,151 +349,103 @@ public class MainScreen implements Screen {
     }
 
     private void drawGround() {
-        float W = screenW, H = screenH;
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(0.10f, 0.10f, 0.23f, 1f);
-        sr.rect(0, 0, W, H * 0.13f);
-        sr.setColor(0.13f, 0.13f, 0.28f, 1f);
-        sr.rect(0, H * 0.13f, W, 2f);
+        sr.rect(0, 0, screenW, screenH * 0.13f);
         sr.end();
     }
 
     private void drawColumns() {
-        float W       = screenW, H = screenH;
-        float groundH = H * 0.13f;
-        float scale   = H / 600f;
-
+        float scale   = screenH / 600f;
         sr.begin(ShapeRenderer.ShapeType.Filled);
         sr.setColor(RED);
         for (int i = 0; i < COL_H.length; i++) {
-            float x    = colBaseX[i] + scrollX;
+            float x = colBaseX[i] + scrollX;
             float colH = COL_H[i] * scale;
-            while (x < -COL_W) x += W + COL_W;
-            while (x > W)      x -= W + COL_W;
-            sr.rect(x, groundH, COL_W, colH);
+            while (x < -COL_W) x += screenW + COL_W;
+            while (x > screenW) x -= screenW + COL_W;
+            sr.rect(x, screenH * 0.13f, COL_W, colH);
         }
         sr.end();
     }
 
     private void drawCharacter() {
-        float W       = screenW, H = screenH;
-        float groundH = H * 0.13f;
-        float size    = H * 0.12f;
-        float cx      = W / 2f;
-        float cy      = groundH + MathUtils.sin(bobT * 2.5f) * H * 0.018f;
-
-        batch.setColor(Color.WHITE);
-        batch.draw(chickenTex, cx - size / 2f, cy, size, size);
+        float size = screenH * 0.12f;
+        float cy = screenH * 0.13f + MathUtils.sin(bobT * 2.5f) * screenH * 0.018f;
+        batch.draw(chickenTex, screenW / 2f - size / 2f, cy, size, size);
     }
 
+    // UC-1.2: Vẽ icon được căn lề bên trái bên trong khung nút mới của Settings và Scores
     private void drawIcons() {
-        float r   = btnSettings.width / 2f;
-        float pad = r * 0.28f;
+        float iconSize = btnSettings.height * 0.5f;
+        float padY = (btnSettings.height - iconSize) / 2f;
+        float padX = btnSettings.width * 0.08f;
 
-        batch.setBlendFunction(GL20.GL_ONE, GL20.GL_ONE);
-        batch.setColor(1f, 1f, 1f, 1f);
-
-        batch.draw(iconSettings,
-            btnSettings.x + pad, btnSettings.y + pad,
-            btnSettings.width - pad*2, btnSettings.height - pad*2);
-
-        batch.draw(iconTrophy,
-            btnScores.x + pad, btnScores.y + pad,
-            btnScores.width - pad*2, btnScores.height - pad*2);
-
-        // Restore normal blending
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        batch.setColor(Color.WHITE);
+        batch.draw(iconSettings, btnSettings.x + padX, btnSettings.y + padY, iconSize, iconSize);
+        batch.draw(iconTrophy, btnScores.x + padX, btnScores.y + padY, iconSize, iconSize);
     }
 
     private void drawText() {
-        float W = screenW, H = screenH;
+        // UC-1.2: Tiêu đề chính
+        fontLarge.draw(batch, "JUMPMASTER", (screenW - new GlyphLayout(fontLarge, "JUMPMASTER").width) / 2f, screenH * 0.88f);
 
-        // JUMPMASTER
-        float titleY = H * 0.92f;
-        fontLarge.setColor(RED);
-        layout.setText(fontLarge, "JUMPMASTER");
-        fontLarge.draw(batch, layout, (W - layout.width) / 2f, titleY);
-
-        // Subtitle
-        float subY = titleY - layout.height - H * 0.02f;
-        final String sub = "DRAG TO SHOOT";
         fontSmall.setColor(WHITE);
-        layout.setText(fontSmall, sub);
-        fontSmall.draw(batch, layout, (W - layout.width) / 2f, subY);
+        fontSmall.draw(batch, "SELECT GAME MODE", (screenW - new GlyphLayout(fontSmall, "SELECT GAME MODE").width) / 2f, btnClassic.y + btnClassic.height + screenH * 0.04f);
 
-        // Mode label
-        final String chooseLbl = "SELECT GAME MODE";
-        fontSmall.setColor(WHITE);
-        layout.setText(fontSmall, chooseLbl);
-        fontSmall.draw(batch, layout,
-            (W - layout.width) / 2f,
-            btnClassic.y + btnClassic.height + H * 0.05f);
-
-        // Button text
-        fontMedium.setColor(Color.WHITE);
         drawCenteredText(fontMedium, "CLASSIC", btnClassic);
-
         fontMedium.setColor(RED);
         drawCenteredText(fontMedium, "TIME ATTACK", btnTimeAttack);
-
         fontMedium.setColor(new Color(0.68f, 0.62f, 1f, 1f));
         drawCenteredText(fontMedium, "CHALLENGE", btnChallenge);
 
-        // Icon labels
-        float labelY = btnSettings.y - fontSmall.getLineHeight() * 1.2f;
+        // UC-1.2: Vẽ nhãn EXIT với màu xám nhạt
+        fontMedium.setColor(Color.GRAY);
+        drawCenteredText(fontMedium, "EXIT", btnExit);
+        fontMedium.setColor(Color.WHITE);
 
-        fontSmall.setColor(WHITE);
-        layout.setText(fontSmall, "SETTINGS");
-        fontSmall.draw(batch, layout,
-            btnSettings.x + (btnSettings.width - layout.width) / 2f, labelY);
-
-        layout.setText(fontSmall, "SCORES");
-        fontSmall.draw(batch, layout,
-            btnScores.x + (btnScores.width - layout.width) / 2f, labelY);
+        // UC-1.2: Vẽ nhãn SETTINGS và SCORES căn giữa bên trong khung nút mới
+        drawCenteredText(fontSmall, "SETTINGS", btnSettings);
+        drawCenteredText(fontSmall, "SCORES", btnScores);
     }
 
     private void drawCenteredText(BitmapFont f, String text, Rectangle btn) {
         layout.setText(f, text);
-        f.draw(batch, layout,
-            btn.x + (btn.width  - layout.width)  / 2f,
-            btn.y + (btn.height + layout.height)  / 2f);
+        f.draw(batch, layout, btn.x + (btn.width - layout.width) / 2f, btn.y + (btn.height + layout.height) / 2f);
     }
 
-    // ── Input ────────────────────────────────────────────────────────────────
+    // UC-1.2: Chọn chế độ chơi - Xử lý tương tác nút chọn mode và nút EXIT
     private void handleInput() {
         if (!Gdx.input.justTouched()) return;
         float tx = Gdx.input.getX();
         float ty = screenH - Gdx.input.getY();
 
         if (isShowingPopup) {
-
-            if (btnBack.contains(tx, ty)) {
-                closePopup();
-                return;
-            }
-
-            if (btnXacNhan.contains(tx, ty)) {
-                startSelectedMode();
-                return;
-            }
-
+            if (btnBack.contains(tx, ty)) { isShowingPopup = false; return; }
+            if (btnXacNhan.contains(tx, ty)) { startSelectedMode(); return; }
             return;
         }
-        if (btnClassic.contains(tx, ty)) {
-            showClassicPopup();
-        } else if (btnTimeAttack.contains(tx, ty)) {
-            showTimeAttackPopup();
-        } else if (btnChallenge.contains(tx, ty)) {
-            showChallengePopup();
-        } else if (btnSettings.contains(tx, ty))
-            game.setScreen(new SettingsScreen(game));
-          else if (btnScores.contains(tx, ty)) //user xem điểm đã lưu từ 3.2.1.3c -> 3.2.2 gọi đối tượng LeaderboardScreen()
-            game.setScreen(new LeaderboardScreen(game));
 
+        if (btnClassic.contains(tx, ty)) {
+            popupText = DESC_CLASSIC; selectedModeTag = "classic"; isShowingPopup = true;
+        } else if (btnTimeAttack.contains(tx, ty)) {
+            popupText = DESC_TIME_ATTACK; selectedModeTag = "timeattack"; isShowingPopup = true;
+        } else if (btnChallenge.contains(tx, ty)) {
+            popupText = DESC_CHALLENGE; selectedModeTag = "challenge"; isShowingPopup = true;
+        } else if (btnExit.contains(tx, ty)) {
+            // UC-1.2: Thoát hẳn trò chơi
+            Gdx.app.exit();
+        } else if (btnSettings.contains(tx, ty)) {
+            game.setScreen(new SettingsScreen(game));
+        } else if (btnScores.contains(tx, ty)) {
+            game.setScreen(new LeaderboardScreen(game));
+        }
     }
 
-    // ── Lifecycle ────────────────────────────────────────────────────────────
+    private void startSelectedMode() {
+        isShowingPopup = false;
+        game.setScreen(new EarthScreen(game, selectedModeTag));
+    }
+
     @Override public void pause()  {}
     @Override public void resume() {}
     @Override public void hide()   {}
@@ -539,53 +460,5 @@ public class MainScreen implements Screen {
         iconSettings.dispose();
         iconTrophy.dispose();
         chickenTex.dispose();
-    }
-
-    void showClassicPopup() {
-        popupText = DESC_CLASSIC;
-        selectedModeTag = "classic";
-        isShowingPopup = true;
-    }
-
-    void showTimeAttackPopup() {
-        popupText = DESC_TIME_ATTACK;
-        selectedModeTag = "timeattack";
-        isShowingPopup = true;
-    }
-
-    void showChallengePopup() {
-        popupText = DESC_CHALLENGE;
-        selectedModeTag = "challenge";
-        isShowingPopup = true;
-    }
-
-    void closePopup() {
-        isShowingPopup = false;
-    }
-
-    void startSelectedMode() {
-
-        isShowingPopup = false;
-
-        if ("classic".equals(selectedModeTag)) {
-            game.setScreen(new EarthScreen(game, "classic"));
-        }
-        else if ("timeattack".equals(selectedModeTag)) {
-            game.setScreen(new EarthScreen(game, "timeattack"));
-        }
-        else if ("challenge".equals(selectedModeTag)) {
-            game.setScreen(new EarthScreen(game, "challenge"));
-        }
-    }
-    boolean isShowingPopup() {
-        return isShowingPopup;
-    }
-
-    String getPopupText() {
-        return popupText;
-    }
-
-    String getSelectedModeTag() {
-        return selectedModeTag;
     }
 }
