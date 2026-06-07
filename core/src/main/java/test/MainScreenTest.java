@@ -125,7 +125,7 @@ public class MainScreenTest {
         assertFalse("Popup phải được ẩn sau khi bắt đầu", (Boolean) getPrivateField(mainScreen, "isShowingPopup"));
     }
 
-    // --- Helper Methods ---
+    // Helper Methods
     private void invokeHandleInput() throws Exception {
         Method method = MainScreen.class.getDeclaredMethod("handleInput");
         method.setAccessible(true);

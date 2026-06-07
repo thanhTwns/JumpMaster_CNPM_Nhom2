@@ -90,7 +90,7 @@ public class SettingsScreenTest {
         verify(Gdx.graphics).setFullscreenMode(mockMode);
     }
 
-    // TC 1.1.3: Kiểm tra Sequence khi nhấn quay lại Menu chính (Sequence Verification)
+    // TC 1.1.3: Kiểm tra Sequence khi nhấn quay lại Menu chính
     @Test
     public void testNavigation_BackToMenu_Sequence() {
         // Mô phỏng trình tự: Lưu cài đặt -> Chuyển màn hình

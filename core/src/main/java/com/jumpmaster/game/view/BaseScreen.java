@@ -341,7 +341,7 @@ public abstract class BaseScreen implements Screen {
                 pY + inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.end();
 
-            // vẽ đường dự đoán quỹ đạo bằng các chấm tròn trắng (hướng nhảy tới)
+            // vẽ đường dự đoán quỹ đạo bằng các chấm tròn trắng
             if (com.jumpmaster.game.GameSettings.getInstance().showTrajectory) {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
                 shapeRenderer.setColor(Color.WHITE);
