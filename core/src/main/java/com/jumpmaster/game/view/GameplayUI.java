@@ -61,6 +61,7 @@ public class GameplayUI {
         topTable.add(scoreLabel).padTop(30).padLeft(15).left().row();  // padTop(30) đẩy xuống
         topTable.add(columnLabel).padTop(4).padLeft(15).left().row();  // padTop(4) gap nhỏ lại
         topTable.add(comboLabel).padTop(4).padLeft(15).left().row();   // tương tự
+        topTable.add(jumpLabel).padTop(4).padLeft(15).left().row();
         topTable.add(fpsLabel).pad(15).left();
 
 
