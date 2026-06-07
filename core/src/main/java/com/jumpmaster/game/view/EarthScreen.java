@@ -40,6 +40,8 @@ public class EarthScreen extends BaseScreen {
     private static final int BAT_FRAME_COLS = 6;
     private static final int BAT_FRAME_ROWS = 1;
     private float topPlatformY = 0f;
+
+    private Platform winPlatform = null;
     public EarthScreen(JumpMasterGame game, String mode) {
         super(game);
         this.mode = mode;
@@ -130,15 +132,22 @@ public class EarthScreen extends BaseScreen {
                 randomX = MathUtils.random(Constants.VIEWPORT_WIDTH / 2f + 20f, Constants.VIEWPORT_WIDTH - platformWidth / 2f - 10f);
             }
             leftSide = !leftSide;
-
-            // Chỉ tạo Platform bình thường
-            platforms.add(new Platform(world, randomX, currentY, platformWidth, stepHeight, stepTexture));
+            Platform p = new Platform(world, randomX, currentY,
+                platformWidth, stepHeight, stepTexture);
+            platforms.add(p);
 
             if (i == 9) {
-                levelClearY  = (currentY + stepHeight) / Constants.PPM;
-                topPlatformY = currentY;   // ← thêm dòng này
+                winPlatform  = p;
+                topPlatformY = currentY;
             }
             currentY += MathUtils.random(120f, 160f);
+        }
+    }
+    // Override hook từ BaseScreen
+    @Override
+    protected void onWinContact(Platform platform) {
+        if (platform == winPlatform) {
+            onLevelComplete();
         }
     }
 
@@ -169,7 +178,7 @@ public class EarthScreen extends BaseScreen {
 
     @Override
     protected float getLevelClearY() {
-        return levelCleared ? Float.MAX_VALUE : levelClearY;
+        return Float.MAX_VALUE;
     }
 
     //2.3.1.1 Khi người dùng qua màn
@@ -178,12 +187,20 @@ public class EarthScreen extends BaseScreen {
         if (levelCleared) return;
         levelCleared = true;
         scoreManager.flush(); // Lưu điểm trước khi chuyển màn
-        Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game)));
+        Gdx.app.postRunnable(() -> game.setScreen(new WinScreen(game, mode)));
     }
 
     @Override
     protected void restartGame() {
         levelCleared = false;
+        winPlatform = null;
+        for (Platform p : platforms) {
+            // destroy Box2D body
+            if (p != null) world.destroyBody(p.body);
+        }
+        platforms.clear();
+        visitedPlatforms.clear();
+        initPlatforms();
         super.restartGame();
     }
 

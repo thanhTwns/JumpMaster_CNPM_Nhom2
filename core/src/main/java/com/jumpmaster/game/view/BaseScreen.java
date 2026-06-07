@@ -190,6 +190,7 @@ public abstract class BaseScreen implements Screen {
      */
     protected void onExtraDispose() {
     }
+    protected void onWinContact(Platform platform) {}
 
     /**
      * X spawn của player (pixel)
@@ -491,7 +492,8 @@ public abstract class BaseScreen implements Screen {
         if (platform == null || platform == groundPlatform || visitedPlatforms.contains(platform)) {
             return;
         }
-
+        onWinContact(platform);
+        if (visitedPlatforms.contains(platform)) return;
         visitedPlatforms.add(platform);
         scoreManager.incrementColumns();
 
