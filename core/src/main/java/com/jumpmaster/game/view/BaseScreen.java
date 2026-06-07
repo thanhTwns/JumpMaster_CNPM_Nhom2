@@ -330,29 +330,37 @@ public abstract class BaseScreen implements Screen {
         if (!isPaused && currentState != State.GAME_OVER && inputHandler.isDragging) {
             shapeRenderer.setProjectionMatrix(camera.combined);
 
-            // aim bar
+            // aim bar (đường màu đỏ - hiển thị hướng kéo tay về phía sau nhân vật)
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(Color.RED);
             float pX = player.body.getPosition().x;
             float pY = player.body.getPosition().y;
+            // Vẽ theo hướng kéo tay (phía sau nhân vật) để mô phỏng lực kéo
             shapeRenderer.line(pX, pY,
                 pX + inputHandler.dragVector.x / Constants.PPM,
                 pY + inputHandler.dragVector.y / Constants.PPM);
             shapeRenderer.end();
 
-            // vẽ đường dự đoán
+            // vẽ đường dự đoán quỹ đạo bằng các chấm tròn trắng (hướng nhảy tới)
             if (com.jumpmaster.game.GameSettings.getInstance().showTrajectory) {
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
                 shapeRenderer.setColor(Color.WHITE);
                 Vector2 startPos = player.body.getPosition();
-                Vector2 velocity = inputHandler.dragVector.cpy().scl(-0.005f);
 
-                float timeStep = 0.1f;
-                for (int i = 0; i < 15; i++) {
+                // Lực nhảy dự kiến (ngược hướng kéo): force = -dragVector * 0.005f
+                Vector2 force = inputHandler.dragVector.cpy().scl(-0.005f);
+                // Vận tốc ban đầu v = Lực / Khối lượng
+                Vector2 velocity = force.scl(1f / player.body.getMass());
+
+                float timeStep = 0.12f;
+                int totalDots = 7; // Chỉ hiện 7 chấm tròn để giữ độ khó cho trò chơi
+                for (int i = 1; i <= totalDots; i++) {
                     float t = i * timeStep;
                     float x = startPos.x + velocity.x * t;
                     float y = startPos.y + velocity.y * t + 0.5f * Constants.GRAVITY * t * t;
-                    shapeRenderer.circle(x, y, 0.04f, 8);
+
+                    // Vẽ chấm tròn nhỏ dọc theo lộ trình dự kiến
+                    shapeRenderer.circle(x, y, 0.035f, 10);
                 }
                 shapeRenderer.end();
             }
