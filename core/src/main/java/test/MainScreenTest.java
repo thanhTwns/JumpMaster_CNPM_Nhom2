@@ -11,11 +11,11 @@ import com.badlogic.gdx.math.Rectangle;
 import com.jumpmaster.game.JumpMasterGame;
 import com.jumpmaster.game.view.MainScreen;
 import com.jumpmaster.game.view.SettingsScreen;
-import com.jumpmaster.game.view.LeaderboardScreen;
 import com.jumpmaster.game.view.EarthScreen;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -45,7 +45,7 @@ public class MainScreenTest {
 
         mainScreen = new MainScreen(mockGame);
 
-        // Thiết lập trạng thái layout qua Reflection để tránh lỗi load font/texture
+        // Thiết lập trạng thái layout qua Reflection để tránh crash load font/texture
         setPrivateField(mainScreen, "screenW", 1200);
         setPrivateField(mainScreen, "screenH", 720);
 
@@ -68,21 +68,6 @@ public class MainScreenTest {
         assertEquals("classic", getPrivateField(mainScreen, "selectedModeTag"));
     }
 
-    // TC 1.2.2: Nhấn START trên Popup để vào gameplay
-    @Test
-    public void testStartGameFromPopup_Sequence() throws Exception {
-        setPrivateField(mainScreen, "isShowingPopup", true);
-        setPrivateField(mainScreen, "selectedModeTag", "classic");
-        Rectangle btnXacNhan = (Rectangle) getPrivateField(mainScreen, "btnXacNhan");
-
-        when(mockInput.justTouched()).thenReturn(true);
-        when(mockInput.getX()).thenReturn((int) btnXacNhan.x + 5);
-        when(mockInput.getY()).thenReturn(720 - (int) btnXacNhan.y - 5);
-
-        invokeHandleInput();
-        verify(mockGame).setScreen(any(EarthScreen.class));
-    }
-
     // TC 1.4: Nhấn nút EXIT để thoát hệ thống (UC-1.4)
     @Test
     public void testClickExit_CallsAppExit_Sequence() throws Exception {
@@ -97,7 +82,7 @@ public class MainScreenTest {
 
     // TC 1.1/1.3: Kiểm tra điều hướng sang Settings và Scores
     @Test
-    public void testNavigation_ToSettingsAndScores() throws Exception {
+    public void testNavigation_ToSettings() throws Exception {
         Rectangle btnSettings = (Rectangle) getPrivateField(mainScreen, "btnSettings");
         when(mockInput.justTouched()).thenReturn(true);
         when(mockInput.getX()).thenReturn((int) btnSettings.x + 5);
@@ -107,11 +92,50 @@ public class MainScreenTest {
         verify(mockGame).setScreen(any(SettingsScreen.class));
     }
 
+    // TEST LOGIC KHỞI ĐỘNG
+
+    @Test
+    public void startSelectedMode_WhenClassicMode_ShouldSetEarthScreen() throws Exception {
+        setPrivateField(mainScreen, "selectedModeTag", "classic");
+        invokePrivateMethod(mainScreen, "startSelectedMode");
+        verify(mockGame).setScreen(any(EarthScreen.class));
+    }
+
+    @Test
+    public void startSelectedMode_WhenTimeAttackMode_ShouldSetEarthScreen() throws Exception {
+        setPrivateField(mainScreen, "selectedModeTag", "timeattack");
+        invokePrivateMethod(mainScreen, "startSelectedMode");
+        verify(mockGame).setScreen(any(EarthScreen.class));
+    }
+
+    @Test
+    public void startSelectedMode_WhenChallengeMode_ShouldSetEarthScreen() throws Exception {
+        setPrivateField(mainScreen, "selectedModeTag", "challenge");
+        invokePrivateMethod(mainScreen, "startSelectedMode");
+        verify(mockGame).setScreen(any(EarthScreen.class));
+    }
+
+    @Test
+    public void startSelectedMode_ShouldHidePopup() throws Exception {
+        setPrivateField(mainScreen, "isShowingPopup", true);
+        setPrivateField(mainScreen, "selectedModeTag", "classic");
+
+        invokePrivateMethod(mainScreen, "startSelectedMode");
+
+        assertFalse("Popup phải được ẩn sau khi bắt đầu", (Boolean) getPrivateField(mainScreen, "isShowingPopup"));
+    }
+
     // --- Helper Methods ---
     private void invokeHandleInput() throws Exception {
         Method method = MainScreen.class.getDeclaredMethod("handleInput");
         method.setAccessible(true);
         method.invoke(mainScreen);
+    }
+
+    private void invokePrivateMethod(Object obj, String methodName) throws Exception {
+        Method method = obj.getClass().getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        method.invoke(obj);
     }
 
     private void setPrivateField(Object obj, String fieldName, Object value) throws Exception {
