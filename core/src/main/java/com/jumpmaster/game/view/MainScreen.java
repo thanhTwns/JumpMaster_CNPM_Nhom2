@@ -499,31 +499,51 @@ public class MainScreen implements Screen {
 
         if (isShowingPopup) {
 
-            if (btnBack.contains(tx, ty)) {
-                closePopup();
-                return;
-            }
+            if (btnBack.contains(tx, ty)) { isShowingPopup = false; return; }
 
-            if (btnXacNhan.contains(tx, ty)) {
-                startSelectedMode();
-                return;
-            }
+            if (btnXacNhan.contains(tx, ty)) { startSelectedMode(); return; }
 
             return;
+
         }
 
+
+
         if (btnClassic.contains(tx, ty)) {
-            showClassicPopup();
+
+            popupText = DESC_CLASSIC; selectedModeTag = "classic"; isShowingPopup = true;
+
         } else if (btnTimeAttack.contains(tx, ty)) {
-            showTimeAttackPopup();
+
+            popupText = DESC_TIME_ATTACK; selectedModeTag = "timeattack"; isShowingPopup = true;
+
         } else if (btnChallenge.contains(tx, ty)) {
-            showChallengePopup();
-        } else if (btnSettings.contains(tx, ty))
+
+            popupText = DESC_CHALLENGE; selectedModeTag = "challenge"; isShowingPopup = true;
+
+        } else if (btnBack.contains(tx, ty)) {
+
+            // UC-1.2: Thoát hẳn trò chơi
+
+            Gdx.app.exit();
+
+        } else if (btnSettings.contains(tx, ty)) {
+
             game.setScreen(new SettingsScreen(game));
-          else if (btnScores.contains(tx, ty)) //user xem điểm đã lưu từ 3.2.1.3c -> 3.2.2 gọi đối tượng LeaderboardScreen()
+
+        } else if (btnScores.contains(tx, ty)) {
+
             game.setScreen(new LeaderboardScreen(game));
 
+        }
+
     }
+
+
+
+
+
+
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
     @Override public void pause()  {}
@@ -542,27 +562,7 @@ public class MainScreen implements Screen {
         chickenTex.dispose();
     }
 
-    public void showClassicPopup() {
-        popupText = STORY + "\n\n" + DESC_CLASSIC;
-        selectedModeTag = "classic";
-        isShowingPopup = true;
-    }
 
-   public void showTimeAttackPopup() {
-       popupText = STORY + "\n\n" + DESC_TIME_ATTACK;
-        selectedModeTag = "timeattack";
-        isShowingPopup = true;
-    }
-
-   public void showChallengePopup() {
-       popupText = STORY + "\n\n" + DESC_CHALLENGE;
-        selectedModeTag = "challenge";
-        isShowingPopup = true;
-    }
-
-    public void closePopup() {
-        isShowingPopup = false;
-    }
 
     public void startSelectedMode() {
 
@@ -578,15 +578,5 @@ public class MainScreen implements Screen {
             game.setScreen(new EarthScreen(game, "challenge"));
         }
     }
-    public boolean isShowingPopup() {
-        return isShowingPopup;
-    }
 
-    public String getPopupText() {
-        return popupText;
-    }
-
-    public String getSelectedModeTag() {
-        return selectedModeTag;
-    }
 }

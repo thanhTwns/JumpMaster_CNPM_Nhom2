@@ -1,97 +1,205 @@
 package test;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.math.Rectangle;
+
+
 import com.jumpmaster.game.JumpMasterGame;
+
 import com.jumpmaster.game.view.EarthScreen;
+
 import com.jumpmaster.game.view.MainScreen;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
 
-import static org.junit.Assert.*;
 
-public class MainScreenTest {
+import org.junit.jupiter.api.BeforeEach;
 
-    private MainScreen screen;
-    private JumpMasterGame mockGame;
+import org.junit.jupiter.api.Test;
 
-    @Before
-    public void setUp() {
-        mockGame = Mockito.mock(JumpMasterGame.class);
 
-        screen = new MainScreen(mockGame);
 
-        // mock Gdx input để không crash
-        Gdx.input = Mockito.mock(Input.class);
-        Mockito.when(Gdx.input.justTouched()).thenReturn(false);
+import java.lang.reflect.Field;
+
+import java.lang.reflect.Method;
+
+
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+import static org.mockito.ArgumentMatchers.any;
+
+import static org.mockito.Mockito.*;
+
+import static javax.management.Query.times;
+
+
+
+
+
+class MainScreenTest {
+
+
+
+    private JumpMasterGame game;
+
+    private MainScreen mainScreen;
+
+
+
+    @BeforeEach
+
+    void setUp() {
+
+        game = mock(JumpMasterGame.class);
+
+        mainScreen = new MainScreen(game);
+
     }
 
-    // =========================
-    // TC1: chọn Classic mode
-    // =========================
+
+
     @Test
-    public void testShowClassicPopup() {
 
-        screen.showClassicPopup();
+    void startSelectedMode_WhenClassicMode_ShouldSetEarthScreen() throws Exception {
 
-        assertTrue(screen.isShowingPopup());
-        assertEquals("classic", screen.getSelectedModeTag());
-        assertTrue(screen.getPopupText().contains("CLASSIC MODE"));
+
+
+        // Arrange
+
+        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+
+        modeField.setAccessible(true);
+
+        modeField.set(mainScreen, "classic");
+
+
+
+        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+
+        method.setAccessible(true);
+
+
+
+        // Act
+
+        method.invoke(mainScreen);
+
+
+
+        // Assert
+
+        verify(game).setScreen(any(EarthScreen.class));
+
+
+
     }
 
-    // =========================
-    // TC2: chọn Time Attack
-    // =========================
+
+
     @Test
-    public void testShowTimeAttackPopup() {
 
-        screen.showTimeAttackPopup();
+    void startSelectedMode_WhenTimeAttackMode_ShouldSetEarthScreen() throws Exception {
 
-        assertTrue(screen.isShowingPopup());
-        assertEquals("timeattack", screen.getSelectedModeTag());
-        assertTrue(screen.getPopupText().contains("TIME ATTACK"));
+
+
+        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+
+        modeField.setAccessible(true);
+
+        modeField.set(mainScreen, "timeattack");
+
+
+
+        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+
+        method.setAccessible(true);
+
+
+
+        method.invoke(mainScreen);
+
+
+
+        verify(game).setScreen(any(EarthScreen.class));
+
     }
 
-    // =========================
-    // TC3: đóng popup
-    // =========================
+
+
     @Test
-    public void testClosePopup() {
 
-        screen.showClassicPopup();
-        screen.closePopup();
+    void startSelectedMode_WhenChallengeMode_ShouldSetEarthScreen() throws Exception {
 
-        assertFalse(screen.isShowingPopup());
+
+
+        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+
+        modeField.setAccessible(true);
+
+        modeField.set(mainScreen, "challenge");
+
+
+
+        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+
+        method.setAccessible(true);
+
+
+
+        method.invoke(mainScreen);
+
+
+
+        verify(game).setScreen(any(EarthScreen.class));
+
     }
 
-    // =========================
-    // TC4: start game classic
-    // =========================
+
+
     @Test
-    public void testStartClassicMode() {
 
-        screen.showClassicPopup();
-        screen.startSelectedMode();
+    void startSelectedMode_ShouldHidePopup() throws Exception {
 
-        Mockito.verify(mockGame).setScreen(
-            Mockito.any(EarthScreen.class)
-        );
+
+
+        // Arrange
+
+        Field popupField = MainScreen.class.getDeclaredField("isShowingPopup");
+
+        popupField.setAccessible(true);
+
+        popupField.set(mainScreen, true);
+
+
+
+        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+
+        modeField.setAccessible(true);
+
+        modeField.set(mainScreen, "classic");
+
+
+
+        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+
+        method.setAccessible(true);
+
+
+
+        // Act
+
+        method.invoke(mainScreen);
+
+
+
+        // Assert
+
+        assertFalse((Boolean) popupField.get(mainScreen));
+
     }
 
-    // =========================
-    // TC5: start game timeattack
-    // =========================
-    @Test
-    public void testStartTimeAttackMode() {
-
-        screen.showTimeAttackPopup();
-        screen.startSelectedMode();
-
-        Mockito.verify(mockGame).setScreen(
-            Mockito.any(EarthScreen.class)
-        );
-    }
 }
+
+
+
+
+
+
