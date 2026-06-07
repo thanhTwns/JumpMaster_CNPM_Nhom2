@@ -91,7 +91,6 @@ public abstract class BaseScreen implements Screen {
     protected float highestY = 0f;
     protected float smoothCamY = 0f;
 
-
     // ── 3.2.1.5 Idle Timer ──────────────────────────────────────────────────
     // AF 3.2.2.1a: đếm ngược 30s khi ở màn GAME_OVER, không có input
     protected float idleTimer = 0f;
@@ -133,6 +132,10 @@ public abstract class BaseScreen implements Screen {
 
     // topPlatformY phải được lớp con cung cấp (pixels)
     protected abstract float getTopPlatformY();
+
+    public static final int MAX_CHALLENGE_JUMPS = 50;
+    protected int jumpCount = 0;
+    protected String mode = "classic";
 
     // -------------------------------------------------------
     // CONSTRUCTOR
@@ -248,7 +251,7 @@ public abstract class BaseScreen implements Screen {
         rightWall = new Platform(world, Constants.VIEWPORT_WIDTH + 10f, 50000, 20, 100000, null);
 
         // InputHandler — block input khi pause/game over
-        inputHandler = new InputHandler(player) {
+        inputHandler = new InputHandler(player, this) {
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.BACK) {
@@ -382,6 +385,7 @@ public abstract class BaseScreen implements Screen {
     public void render(float delta) {
         if (!isPaused && currentState != State.GAME_OVER) {
             world.step(1 / 60f, 6, 2);
+
             // Cập nhật ScoreManager để xử lý đếm ngược combo 5s
             scoreManager.update(delta);
 
@@ -478,7 +482,7 @@ public abstract class BaseScreen implements Screen {
 
         } else if (isPaused && !isPausedByMapView) pauseOverlay.render();
         else {
-            gameplayUI.update(scoreManager);
+            gameplayUI.update(scoreManager, this);
             gameplayUI.render();
         }
         drawMapViewButton();
@@ -706,6 +710,8 @@ public abstract class BaseScreen implements Screen {
             visitedPlatforms.clear();
             scoreManager.resetSession();
 
+            jumpCount = 0;
+
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
             player.body.setTransform(
@@ -723,6 +729,7 @@ public abstract class BaseScreen implements Screen {
     // MENU
     // -------------------------------------------------------
     protected void goToMenu() {
+        jumpCount=0;
         Gdx.app.postRunnable(() -> {
             AudioManager.getInstance().playMenuMusic();
             game.setScreen(new MainScreen(game));
@@ -797,6 +804,20 @@ public abstract class BaseScreen implements Screen {
             gameOverOverlay.dispose();
         if (mapFont != null) mapFont.dispose();
         onExtraDispose();
+    }
+    public JumpMasterGame getGame() {
+        return game;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+    public void increaseJumpCount() {
+        jumpCount++;
+    }
+
+    public int getJumpCount() {
+        return jumpCount;
     }
     protected OrthographicCamera getActiveCamera() {
         return isMapView ? mapCam : camera;

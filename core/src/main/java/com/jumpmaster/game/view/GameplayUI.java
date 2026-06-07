@@ -20,6 +20,7 @@ public class GameplayUI {
     private Label scoreLabel;
     private Label comboLabel;
     private Label columnLabel;
+    private Label jumpLabel;
     private Label fpsLabel; // Khai báo fpsLabel ở đây
     private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
@@ -45,6 +46,9 @@ public class GameplayUI {
         columnLabel = new Label("Steps: 0", labelStyle);
         comboLabel = new Label("", labelStyle);
         comboLabel.setColor(Color.YELLOW);
+
+        jumpLabel = new Label("", labelStyle);
+        jumpLabel.setColor(Color.WHITE);
 
         // Khởi tạo fpsLabel 1 lần duy nhất
         fpsLabel = new Label("0 FPS", labelStyle);
@@ -89,7 +93,7 @@ public class GameplayUI {
         if (levelLabel != null) levelLabel.setText("LEVEL " + level);
     }
 
-    public void update(ScoreManager sm) {
+    public void update(ScoreManager sm, BaseScreen screen) {
         this.scoreManager = sm;
 
         // Cập nhật text liên tục ở đây
@@ -101,7 +105,15 @@ public class GameplayUI {
         } else {
             comboLabel.setText("");
         }
+        if ("challenge".equals(screen.getMode())) {
+            int remaining = BaseScreen.MAX_CHALLENGE_JUMPS
+                - screen.getJumpCount();
 
+            jumpLabel.setText("Jumps Left: " + remaining);
+            jumpLabel.setVisible(true);
+        } else {
+            jumpLabel.setVisible(false);
+        }
         // Ẩn/hiện FPS tùy thuộc vào cài đặt
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
     }

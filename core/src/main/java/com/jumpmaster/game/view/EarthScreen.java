@@ -45,6 +45,9 @@ public class EarthScreen extends BaseScreen {
     public EarthScreen(JumpMasterGame game, String mode) {
         super(game);
         this.mode = mode;
+        if ("challenge".equals(mode)) {
+            jumpCount = 0;
+        }
     }
     @Override
     protected float getTopPlatformY() { return topPlatformY; }
@@ -290,5 +293,8 @@ public class EarthScreen extends BaseScreen {
     protected void onExtraDispose() {
         if (bgLayers != null) for (Texture t : bgLayers) t.dispose();
         if (batSheet != null) batSheet.dispose();
+    }
+    public String getMode() {
+        return mode;
     }
 }
