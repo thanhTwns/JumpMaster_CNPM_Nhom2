@@ -42,6 +42,9 @@ public class EarthScreen extends BaseScreen {
     public EarthScreen(JumpMasterGame game, String mode) {
         super(game);
         this.mode = mode;
+        if ("challenge".equals(mode)) {
+            jumpCount = 0;
+        }
     }
 
     @Override
@@ -171,7 +174,7 @@ public class EarthScreen extends BaseScreen {
         if (levelCleared) return;
         levelCleared = true;
         scoreManager.flush(); // Lưu điểm trước khi chuyển màn
-        Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game)));
+        Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game, mode)));
     }
 
     @Override
@@ -266,5 +269,8 @@ public class EarthScreen extends BaseScreen {
     protected void onExtraDispose() {
         if (bgLayers != null) for (Texture t : bgLayers) t.dispose();
         if (batSheet != null) batSheet.dispose();
+    }
+    public String getMode() {
+        return mode;
     }
 }

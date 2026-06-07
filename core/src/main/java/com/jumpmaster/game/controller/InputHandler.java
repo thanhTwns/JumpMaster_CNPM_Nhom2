@@ -5,6 +5,8 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.math.Vector2;
 import com.jumpmaster.game.AudioManager;
 import com.jumpmaster.game.model.Player;
+import com.jumpmaster.game.view.BaseScreen;
+import com.jumpmaster.game.view.EarthScreen;
 
 public class InputHandler extends InputAdapter {
     private Player player;
@@ -15,9 +17,10 @@ public class InputHandler extends InputAdapter {
 
     // FIX: track pointer ID để không bị lẫn lộn giữa các ngón tay
     private int activePointer = -1; // -1 = không có touch nào đang active
-
-    public InputHandler(Player player) {
+    private BaseScreen screen;
+    public InputHandler(Player player, BaseScreen screen) {
         this.player = player;
+        this.screen = screen;
     }
 
     // 2.5.1 Khi người dùng tương tác cảm ứng, các hàm sẽ được gọi tương ứng để xử lí
@@ -69,6 +72,14 @@ public class InputHandler extends InputAdapter {
         force.scl(0.005f);
 
         player.jump(force);
+        screen.increaseJumpCount();
+
+        if ("challenge".equals(screen.getMode())) {
+
+            if (screen.getJumpCount() > BaseScreen.MAX_CHALLENGE_JUMPS) {
+                screen.triggerGameOver();
+            }
+        }
         AudioManager.getInstance().stopPullSound(); // Stop the loop
         AudioManager.getInstance().playLaunchSound();// phát âm thanh nhảy
         dragVector.set(0, 0); // reset drag vector sau khi nhảy

@@ -98,8 +98,14 @@ public abstract class BaseScreen implements Screen {
     public GameOverOverlay gameOverOverlay;
     protected InputMultiplexer multiplexer;
     public ScoreManager scoreManager;
+    public static final int MAX_CHALLENGE_JUMPS = 50;
 
     protected static final float DEATH_Y = -0.5f;
+
+    protected int jumpCount = 0;
+
+
+    protected String mode = "classic";
 
     // -------------------------------------------------------
     // CONSTRUCTOR
@@ -207,7 +213,7 @@ public abstract class BaseScreen implements Screen {
         rightWall = new Platform(world, Constants.VIEWPORT_WIDTH + 10f, 50000, 20, 100000, null);
 
         // InputHandler — block input khi pause/game over
-        inputHandler = new InputHandler(player) {
+        inputHandler = new InputHandler(player, this) {
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.BACK) {
@@ -380,7 +386,7 @@ public abstract class BaseScreen implements Screen {
 
         } else if (isPaused) pauseOverlay.render();
         else {
-            gameplayUI.update(scoreManager);
+            gameplayUI.update(scoreManager, this);
             gameplayUI.render();
         }
     }
@@ -465,6 +471,8 @@ public abstract class BaseScreen implements Screen {
             visitedPlatforms.clear();
             scoreManager.resetSession();
 
+            jumpCount = 0;
+
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
             player.body.setTransform(
@@ -478,11 +486,15 @@ public abstract class BaseScreen implements Screen {
         });
     }
 
+
     // -------------------------------------------------------
     // MENU
     // -------------------------------------------------------
     protected void goToMenu() {
         Gdx.app.postRunnable(() -> {
+
+            jumpCount = 0;
+
             AudioManager.getInstance().playMenuMusic();
             game.setScreen(new MainScreen(game));
         });
@@ -551,5 +563,20 @@ public abstract class BaseScreen implements Screen {
         if (gameOverOverlay != null)
             gameOverOverlay.dispose();
         onExtraDispose();
+    }
+
+    public JumpMasterGame getGame() {
+        return game;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+    public void increaseJumpCount() {
+        jumpCount++;
+    }
+
+    public int getJumpCount() {
+        return jumpCount;
     }
 }

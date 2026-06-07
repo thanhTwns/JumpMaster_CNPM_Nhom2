@@ -70,19 +70,18 @@ public class MainScreen implements Screen {
             "- Find the portal and finish the stage as fast as possible.";
     private static final String DESC_CHALLENGE =
         "CHALLENGE MODE:\n" +
-            "- Complete special objectives on each stage.\n" +
-            "- Avoid enemies and environmental hazards.\n" +
-            "- Limited lives and tougher platform layouts.\n" +
-            "- Reach the goal before running out of chances.\n" +
-            "- Earn bonus points for completing challenges.";
+            "- Complete both stages.\n" +
+            "- You can only jump 50 times.\n" +
+            "- Avoid enemies and don't fall.";
     private boolean isShowingPopup = false;
     private com.badlogic.gdx.math.Rectangle btnXacNhan;
     private String popupText = "";
     private String selectedModeTag = "";
     private ShapeRenderer shapeRenderer;
     private Rectangle btnBack;
-
-
+    private static final String STORY =
+        "Chick is a small chicken with special jumping ability.\n" +
+            "He escapes the coop and begins his journey across the skies.";
     public MainScreen(JumpMasterGame game) {
         this.game = game;
     }
@@ -102,6 +101,7 @@ public class MainScreen implements Screen {
         iconSettings.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         iconTrophy.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
+        //nút xác nhận và nút quay lại
         float btnW = 220f;
         float btnH = 60f;
         shapeRenderer = new ShapeRenderer();
@@ -511,6 +511,7 @@ public class MainScreen implements Screen {
 
             return;
         }
+
         if (btnClassic.contains(tx, ty)) {
             showClassicPopup();
         } else if (btnTimeAttack.contains(tx, ty)) {
@@ -542,19 +543,19 @@ public class MainScreen implements Screen {
     }
 
     public void showClassicPopup() {
-        popupText = DESC_CLASSIC;
+        popupText = STORY + "\n\n" + DESC_CLASSIC;
         selectedModeTag = "classic";
         isShowingPopup = true;
     }
 
    public void showTimeAttackPopup() {
-        popupText = DESC_TIME_ATTACK;
+       popupText = STORY + "\n\n" + DESC_TIME_ATTACK;
         selectedModeTag = "timeattack";
         isShowingPopup = true;
     }
 
    public void showChallengePopup() {
-        popupText = DESC_CHALLENGE;
+       popupText = STORY + "\n\n" + DESC_CHALLENGE;
         selectedModeTag = "challenge";
         isShowingPopup = true;
     }

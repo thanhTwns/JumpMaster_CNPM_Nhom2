@@ -10,10 +10,12 @@ import com.jumpmaster.game.view.SpaceScreen;
  * {@link com.badlogic.gdx.ApplicationListener} implementation shared by all
  * platforms.
  */
+
 public class JumpMasterGame extends Game {
 
     // private SpriteBatch batch;
     public SpriteBatch batch;
+
 
     @Override
     public void create() {
@@ -35,4 +37,6 @@ public class JumpMasterGame extends Game {
     public void dispose() {
         batch.dispose();
     }
+
+
 }

@@ -48,9 +48,11 @@ public class SpaceScreen extends BaseScreen {
     private static final float SCORE_STEP           = 100f;
     private static final float INTERVAL_PER_STEP    = 0.3f;
     private static final float SPEED_PER_STEP       = 0.2f;
+    private final String mode;
 
-    public SpaceScreen(JumpMasterGame game) {
+    public SpaceScreen(JumpMasterGame game, String mode) {
         super(game);
+        this.mode = mode;
     }
 
     // -------------------------------------------------------
@@ -312,5 +314,9 @@ public class SpaceScreen extends BaseScreen {
         if (planetTexture != null)
             for (Texture t : planetTexture)
                 if (t != null) t.dispose();
+    }
+    @Override
+    public String getMode() {
+        return mode;
     }
 }
