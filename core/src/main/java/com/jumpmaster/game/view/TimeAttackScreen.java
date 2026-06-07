@@ -56,6 +56,8 @@ public class TimeAttackScreen extends BaseScreen {
     private Animation<TextureRegion> batAnimation;
     private float         batStateTime = 0f;
     private Texture       flyingHeadTexture;
+    private static final int   BAT_FRAME_COLS  = 5;
+    private static final int   BAT_FRAME_ROWS  = 1;
 
     public TimeAttackScreen(JumpMasterGame game) {
         super(game);
@@ -139,14 +141,14 @@ public class TimeAttackScreen extends BaseScreen {
         if (this.stepTexture != null) this.stepTexture.dispose();
         this.stepTexture = stepTex;
 
-        batFrames           = loadBatFrames();
+        batFrames  = loadBatFrames();
         flyingHeadTexture = tryLoadTexture("ui-timeAttack/flying-head.png");
         if (flyingHeadTexture != null) {
-            int frameW = flyingHeadTexture.getWidth() / 4;   // 4 frames ngang
-            int frameH = flyingHeadTexture.getHeight();
+            int frameW = flyingHeadTexture.getWidth() / BAT_FRAME_COLS;
+            int frameH = flyingHeadTexture.getHeight() / BAT_FRAME_ROWS;
             TextureRegion[][] tmp = TextureRegion.split(flyingHeadTexture, frameW, frameH);
-            TextureRegion[] frames = new TextureRegion[4];
-            for (int i = 0; i < 4; i++) frames[i] = tmp[0][i];
+            Array<TextureRegion> frames = new Array<>();
+            for (int i = 0; i < BAT_FRAME_COLS; i++) frames.add(tmp[0][i]);;
             batAnimation = new Animation<>(1f / 8f, frames);
             batAnimation.setPlayMode(Animation.PlayMode.LOOP);
         }
@@ -253,35 +255,34 @@ public class TimeAttackScreen extends BaseScreen {
     protected void onExtraDraw() {
         if (taLogic == null) return;
 
-        // Vẽ platform bats (dùng batFrames vampire1..12)
+        // Vẽ platform bats (vampire1..12)
         taLogic.drawEntities(game.batch);
 
-        // Vẽ flying bats bằng flying-head.png
-        if (flyingHeadTexture == null) return;
-        float w = 48f / Constants.PPM;
-        float h = 48f / Constants.PPM;
+        if (batAnimation == null) return;
 
-        for (com.badlogic.gdx.physics.box2d.Body b : taLogic.getFlyingBats()) {
+        Array<com.badlogic.gdx.physics.box2d.Body> flyingBats = taLogic.getFlyingBats();
+        for (int i = 0; i < flyingBats.size; i++) {
+            com.badlogic.gdx.physics.box2d.Body b = flyingBats.get(i);
             Object ud = b.getUserData();
             boolean fromLeft = false;
             if (ud instanceof Object[]) fromLeft = (Boolean)((Object[])ud)[1];
-            // fromLeft=true → bay sang phải → không flip
-            // fromLeft=false → bay sang trái → flip ngang
-            boolean flipX = !fromLeft;
 
-            float bx = b.getPosition().x;   // metres
-            float by = b.getPosition().y;   // metres
+            // FIX: offset time theo index để mỗi con ở frame khác nhau
+            float frameOffset = i * (1f / 8f) * 1.7f;  // lệch ~1-2 frame mỗi con
+            TextureRegion frame = batAnimation.getKeyFrame(batStateTime + frameOffset, true);
 
-            game.batch.draw(
-                flyingHeadTexture,
-                bx - w / 2f, by - h / 2f,  // vị trí (metres)
-                w / 2f, h / 2f,             // origin giữa để flip đúng
-                w, h,                       // kích thước (metres)
-                1f, 1f,                     // scale
-                0f,                         // rotation
-                0, 0,                       // srcX, srcY
-                flyingHeadTexture.getWidth(), flyingHeadTexture.getHeight(),
-                flipX, false);
+            boolean needFlip = !fromLeft;
+            if (frame.isFlipX() != needFlip) frame.flip(true, false);
+
+            float bx = b.getPosition().x;
+            float by = b.getPosition().y;
+            float drawW = frame.getRegionWidth()  / Constants.PPM;
+            float drawH = frame.getRegionHeight() / Constants.PPM;
+
+            game.batch.draw(frame,
+                bx - drawW / 2f,
+                by - drawH / 2f,
+                drawW, drawH);
         }
     }
 

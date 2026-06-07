@@ -32,8 +32,8 @@ public class TimeAttackLogic implements Disposable {
     private static final int   BAT_SPAWN_EVERY_N_PLATFORMS = 2;
 
     private static final float BAT_FLY_SPEED_MIN  = 1.5f;
-    private static final float BAT_FLY_SPEED_MAX  = 3.0f;
-    private static final float BAT_SPAWN_INTERVAL = 2.0f;
+    private static final float BAT_FLY_SPEED_MAX  = 2.5f;
+    private static final float BAT_SPAWN_INTERVAL = 3.5f;
     private static final int   BAT_WAVE_MIN       = 3;
     private static final int   BAT_WAVE_MAX       = 6;
 
@@ -67,6 +67,9 @@ public class TimeAttackLogic implements Disposable {
 
     private final Array<Body> flyingBats   = new Array<>();
     private float             batSpawnTimer = 0f;
+    private static final float BAT_SPEED       = 0.7f;
+    private static final float PLATFORM_STEP_H = 140f;
+    private int batSpawnIndex = 0;
 
     // ──────────────────────────────────────────────────────────────────────
     //  Constructors
@@ -127,6 +130,7 @@ public class TimeAttackLogic implements Disposable {
         vortex = null;
         platformBatCooldown = 0f;
         flyingBatCooldown   = 0f;
+        batSpawnIndex = 0;
         batSpawnTimer       = 0f;
 
         int stepCount = platforms.size - 1;
@@ -243,37 +247,42 @@ public class TimeAttackLogic implements Disposable {
     //  Flying bats
     // ──────────────────────────────────────────────────────────────────────
 
-    private void spawnBatWave() {
-        int count = MathUtils.random(BAT_WAVE_MIN, BAT_WAVE_MAX);
+    private void spawnBatWave() {  // giữ tên để không đổi chỗ gọi
         float camX  = player.body.getPosition().x;
         float camY  = player.body.getPosition().y;
-        float halfW = (Constants.VIEWPORT_WIDTH  / Constants.PPM) / 2f;
-        float halfH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+        float halfW = (Constants.VIEWPORT_WIDTH  / Constants.PPM) / 2f;  // 3.6f
+        float halfH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;  // 2.025f
+        float twoSteps = 2.8f;
+        boolean fromLeft = (batSpawnIndex % 2 == 0);  // xen kẽ trái/phải
+        float totalRange = halfH * 2f + twoSteps;           // 6.075f metres
+        float slot       = totalRange / 6f;      // = 1.0125f mỗi slot
+        float baseY      = camY + slot * (batSpawnIndex % 6);
+        float jitter     = MathUtils.random(-slot * 0.2f, slot * 0.2f);
+        float spawnY     = baseY + jitter;
 
-        for (int i = 0; i < count; i++) {
-            boolean fromLeft = MathUtils.randomBoolean();
-            float spawnY = camY + MathUtils.random(-halfH * 0.8f, halfH * 0.8f);
-            float spawnX = fromLeft ? (camX - halfW - 1f) : (camX + halfW + 1f);
+        float spawnX = fromLeft ? (camX - halfW - 1f) : (camX + halfW + 1f);
 
-            BodyDef bdef = new BodyDef();
-            bdef.type = BodyDef.BodyType.KinematicBody;
-            bdef.position.set(spawnX, spawnY);
-            Body body = world.createBody(bdef);
+        BodyDef bdef = new BodyDef();
+        bdef.type = BodyDef.BodyType.KinematicBody;
+        bdef.position.set(spawnX, spawnY);
+        Body body = world.createBody(bdef);
 
-            CircleShape shape = new CircleShape();
-            shape.setRadius(15f / Constants.PPM);
-            FixtureDef fdef = new FixtureDef();
-            fdef.shape    = shape;
-            fdef.isSensor = true;
-            body.createFixture(fdef).setUserData("flyingBat");
-            shape.dispose();
+        CircleShape shape = new CircleShape();
+        shape.setRadius(15f / Constants.PPM);
+        FixtureDef fdef = new FixtureDef();
+        fdef.shape    = shape;
+        fdef.isSensor = true;
+        body.createFixture(fdef).setUserData("flyingBat");
+        shape.dispose();
 
-            float speed = MathUtils.random(BAT_FLY_SPEED_MIN, BAT_FLY_SPEED_MAX);
-            body.setLinearVelocity(fromLeft ? speed : -speed, 0f);
-            body.setUserData(new Object[]{ "flyingBat", fromLeft });
-            flyingBats.add(body);
-        }
-        Gdx.app.log("TimeAttack", "Spawned " + count + " flying bats");
+        float speed = MathUtils.random(BAT_FLY_SPEED_MIN, BAT_FLY_SPEED_MAX);
+        body.setLinearVelocity(fromLeft ? speed : -speed, 0f);
+        body.setUserData(new Object[]{ "flyingBat", fromLeft });
+        flyingBats.add(body);
+
+        batSpawnIndex++;  // tăng index để lần sau Y và hướng khác
+        Gdx.app.log("TimeAttack", "Spawned bat #" + batSpawnIndex
+            + " spawnY=" + spawnY + " fromLeft=" + fromLeft);
     }
 
     private void updateFlyingBats(float delta) {
@@ -412,15 +421,10 @@ public class TimeAttackLogic implements Disposable {
             float cy = platform.getY() * Constants.PPM;
             float hw = (platform.getWidth() * Constants.PPM) / 2f;
 
+            float screenHalfW = Constants.VIEWPORT_WIDTH / 2f;
             float margin = Math.min(8f, hw * 0.1f);
-            patrolLeft  = cx - hw + margin;
-            patrolRight = cx + hw - margin;
-
-            // Platform quá hẹp → mở rộng patrol
-            if (patrolRight - patrolLeft < 32f) {
-                patrolLeft  = cx - 60f;
-                patrolRight = cx + 60f;
-            }
+            patrolLeft  = cx - screenHalfW;
+            patrolRight = cx + screenHalfW;
 
             x = cx;
             y = cy + 24f;
