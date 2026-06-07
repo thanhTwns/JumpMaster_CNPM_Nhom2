@@ -99,17 +99,28 @@ public class EarthScreen extends BaseScreen {
             @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
 
-        // Khởi tạo bat animation (dùng flying-head.png)
-        bats = new Array<>();
-        batSheet = new Texture(Gdx.files.internal("flying-head.png"));
-        int frameW = batSheet.getWidth() / BAT_FRAME_COLS;
-        int frameH = batSheet.getHeight() / BAT_FRAME_ROWS;
-        TextureRegion[][] tmp = TextureRegion.split(batSheet, frameW, frameH);
-        Array<TextureRegion> frames = new Array<>();
-        for (int i = 0; i < BAT_FRAME_ROWS; i++)
-            for (int j = 0; j < BAT_FRAME_COLS; j++)
-                frames.add(tmp[i][j]);
-        batAnimation = new Animation<>(0.1f, frames);
+        // Xóa bats cũ nếu có
+        if (bats != null) {
+            for (Body b : bats) {
+                world.destroyBody(b);
+            }
+            bats.clear();
+        } else {
+            bats = new Array<>();
+        }
+
+        // Khởi tạo bat animation chỉ 1 lần duy nhất
+        if (batSheet == null) {
+            batSheet = new Texture(Gdx.files.internal("flying-head.png"));
+            int frameW = batSheet.getWidth() / BAT_FRAME_COLS;
+            int frameH = batSheet.getHeight() / BAT_FRAME_ROWS;
+            TextureRegion[][] tmp = TextureRegion.split(batSheet, frameW, frameH);
+            Array<TextureRegion> frames = new Array<>();
+            for (int i = 0; i < BAT_FRAME_ROWS; i++)
+                for (int j = 0; j < BAT_FRAME_COLS; j++)
+                    frames.add(tmp[i][j]);
+            batAnimation = new Animation<>(0.1f, frames);
+        }
 
         float groundHeight = 48f;
         float groundWidth = Constants.VIEWPORT_WIDTH + 200f;
@@ -174,13 +185,26 @@ public class EarthScreen extends BaseScreen {
         if (levelCleared) return;
         levelCleared = true;
         scoreManager.flush(); // Lưu điểm trước khi chuyển màn
-        Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game, mode)));
+        final int carryScore = scoreManager.getCurrentScore();
+        final int carryColumns = scoreManager.getColumnsPassed();
+        Gdx.app.postRunnable(() -> game.setScreen(new SpaceScreen(game, mode, carryScore, carryColumns)));
     }
 
     @Override
     protected void restartGame() {
         levelCleared = false;
         super.restartGame();
+    }
+
+    @Override
+    protected void clearPlatforms() {
+        super.clearPlatforms();
+        if (bats != null) {
+            for (Body b : bats) {
+                world.destroyBody(b);
+            }
+            bats.clear();
+        }
     }
 
     // -------------------------------------------------------

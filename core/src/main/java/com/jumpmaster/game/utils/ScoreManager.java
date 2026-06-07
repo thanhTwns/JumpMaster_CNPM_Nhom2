@@ -72,6 +72,17 @@ public class ScoreManager {
         return combo;
     }
 
+    public void setCurrentScore(int score) {
+        this.currentScore = score;
+        if (currentScore > highScore) {
+            highScore = currentScore;
+        }
+    }
+
+    public void setColumnsPassed(int columns) {
+        this.columnsPassed = columns;
+    }
+
     public void addPoints(int points) {
         currentScore += points;
         if (currentScore > highScore) {
@@ -128,6 +139,19 @@ public class ScoreManager {
 
     public void flush() {
         saveHighScore(currentScore);
+    }
+
+    // xóa toàn bộ kỉ lục của game (high score và top 5)
+    public void clearAllRecords() {
+        prefs.remove(KEY_HIGH_SCORE);
+        for (int i = 0; i < TOP5_SIZE; i++) {
+            prefs.remove(KEY_TOP5_SCORE + i);
+            prefs.remove(KEY_TOP5_DATE + i);
+        }
+        prefs.flush();
+        highScore = 0;
+        currentScore = 0;
+        columnsPassed = 0;
     }
 
     // ── 3.2.1.3c Top 5 Leaderboard ───────────────────────────────────────────

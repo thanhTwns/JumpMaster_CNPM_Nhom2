@@ -51,8 +51,14 @@ public class SpaceScreen extends BaseScreen {
     private final String mode;
 
     public SpaceScreen(JumpMasterGame game, String mode) {
+        this(game, mode, 0, 0);
+    }
+
+    public SpaceScreen(JumpMasterGame game, String mode, int carryScore, int carryColumns) {
         super(game);
         this.mode = mode;
+        this.initialScore = carryScore;
+        this.initialColumns = carryColumns;
     }
 
     // -------------------------------------------------------
@@ -118,8 +124,15 @@ public class SpaceScreen extends BaseScreen {
             @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
 
-        // Khởi tạo ship array
-        planets = new Array<>();
+        // Xóa các phi thuyền cũ nếu có
+        if (planets != null) {
+            for (Body b : planets) {
+                world.destroyBody(b);
+            }
+            planets.clear();
+        } else {
+            planets = new Array<>();
+        }
 
         // Mặt đất
         float groundH = 48f;
@@ -147,6 +160,17 @@ public class SpaceScreen extends BaseScreen {
             // Đã loại bỏ Platform.Type, chỉ tạo platform bình thường
             platforms.add(new Platform(world, randomX, currentY, platW, stepHeight, stepTexture));
             currentY += MathUtils.random(120f, 160f);
+        }
+    }
+
+    @Override
+    protected void clearPlatforms() {
+        super.clearPlatforms();
+        if (planets != null) {
+            for (Body b : planets) {
+                world.destroyBody(b);
+            }
+            planets.clear();
         }
     }
 

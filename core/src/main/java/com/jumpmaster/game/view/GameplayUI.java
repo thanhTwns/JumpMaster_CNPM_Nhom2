@@ -21,6 +21,8 @@ public class GameplayUI {
     private Label comboLabel;
     private Label columnLabel;
     private Label jumpLabel;
+    private Label attemptLabel;
+    private float attemptTimer = 0f;
     private Label fpsLabel; // Khai báo fpsLabel ở đây
     private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
@@ -45,24 +47,13 @@ public class GameplayUI {
         jumpLabel = new Label("", labelStyle);
         jumpLabel.setColor(Color.WHITE);
 
+        attemptLabel = new Label("", labelStyle);
+        attemptLabel.setColor(Color.ORANGE);
+        attemptLabel.setVisible(false);
+
         // Khởi tạo fpsLabel 1 lần duy nhất
         fpsLabel = new Label("0 FPS", labelStyle);
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
-
-        // Bảng chứa điểm và FPS ở góc trái
-        Table topTable = new Table();
-        topTable.top().left();
-        topTable.setFillParent(true);
-        topTable.add(scoreLabel).pad(15).left().row();
-        topTable.add(columnLabel).pad(15).left().row();
-        topTable.add(comboLabel).pad(15).left().row();
-        topTable.add(jumpLabel).padTop(-35).padLeft(15).left().row();
-        topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
-
-        // Bảng chứa nút Pause ở góc phải
-        Table actionTable = new Table();
-        actionTable.top().right();
-        actionTable.setFillParent(true);
 
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = font;
@@ -77,15 +68,36 @@ public class GameplayUI {
             }
         });
 
-        actionTable.add(pauseButton).pad(15);
+        // Bảng chứa điểm và FPS ở góc trái
+        Table topTable = new Table();
+        topTable.top().left();
+        topTable.setFillParent(true);
+        
+        // Dòng đầu tiên: Score (trái), Attempt (giữa), Pause (phải)
+        topTable.add(scoreLabel).pad(15).left();
+        topTable.add(attemptLabel).expandX().center();
+        topTable.add(pauseButton).pad(15).right().row();
+        
+        topTable.add(columnLabel).pad(15).left().row();
+        topTable.add(comboLabel).pad(15).left().row();
+        topTable.add(jumpLabel).padTop(-35).padLeft(15).left().row();
+        topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
 
         // Chỉ add lên stage 1 lần
         stage.addActor(topTable);
-        stage.addActor(actionTable);
     }
 
     public void update(ScoreManager sm, BaseScreen screen) {
         this.scoreManager = sm;
+
+        // Cập nhật attempt count
+        if (attemptTimer > 0) {
+            attemptTimer -= Gdx.graphics.getDeltaTime();
+            attemptLabel.setText("Attempt " + screen.game.attemptCount);
+            attemptLabel.setVisible(true);
+        } else {
+            attemptLabel.setVisible(false);
+        }
 
         // Cập nhật text liên tục ở đây
         scoreLabel.setText("Score: " + sm.getCurrentScore());
@@ -107,6 +119,10 @@ public class GameplayUI {
         }
         // Ẩn/hiện FPS tùy thuộc vào cài đặt
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
+    }
+
+    public void showAttempt() {
+        attemptTimer = 5f;
     }
 
     public void render() {

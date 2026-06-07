@@ -96,7 +96,22 @@ public class LeaderboardScreen implements Screen {
             }
         });
 
-        table.add(btnBack).width(300).height(60);
+        // Nút để xóa record
+        TextButton.TextButtonStyle btnDeleteStyle = new TextButton.TextButtonStyle();
+        btnDeleteStyle.font = textFont;
+        btnDeleteStyle.fontColor = Color.GRAY;
+
+        TextButton btnDelete = new TextButton("DELETE ALL RECORDS", btnDeleteStyle);
+        btnDelete.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                scoreManager.clearAllRecords();
+                game.setScreen(new LeaderboardScreen(game));
+            }
+        });
+
+        table.add(btnBack).width(300).height(60).padBottom(10).row();
+        table.add(btnDelete).width(300).height(40);
 
         stage.addActor(table);
     }

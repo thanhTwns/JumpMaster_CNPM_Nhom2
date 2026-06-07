@@ -99,6 +99,9 @@ public abstract class BaseScreen implements Screen {
     protected InputMultiplexer multiplexer;
     public ScoreManager scoreManager;
 
+    protected int initialScore = 0;
+    protected int initialColumns = 0;
+
     protected static final float DEATH_Y = -0.5f;
 
     public static final int MAX_CHALLENGE_JUMPS = 50;
@@ -239,6 +242,8 @@ public abstract class BaseScreen implements Screen {
 
         // UI
         scoreManager = new ScoreManager();
+        scoreManager.setCurrentScore(initialScore);
+        scoreManager.setColumnsPassed(initialColumns);
 
         gameplayUI = new GameplayUI(game.batch, () -> {
             isPaused = true;
@@ -246,6 +251,12 @@ public abstract class BaseScreen implements Screen {
                 inputHandler.reset();
             updateInputProcessors();
         });
+
+        // khởi tạo attempt count khi khởi động game
+        if (game.attemptCount == 0) {
+            game.attemptCount = 1;
+        }
+        gameplayUI.showAttempt();
 
         pauseOverlay = new PauseOverlay(game.batch, new PauseOverlay.PauseListener() {
             @Override
@@ -464,6 +475,9 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void restartGame() {
         Gdx.app.postRunnable(() -> {
+            // tăng số attempt lên 1 lần khi reset game
+            game.attemptCount++;
+            
             // ── 3.2.1.6a restartGame ────────────────────────────────────
             currentState   = State.RUNNING;
             isPaused       = false;
@@ -476,8 +490,16 @@ public abstract class BaseScreen implements Screen {
             highestY = 0;
             visitedPlatforms.clear();
             scoreManager.resetSession();
+            
+            // Nếu restart tại level 2, điểm số = 0
+            scoreManager.setCurrentScore(0);
+            scoreManager.setColumnsPassed(0);
 
             jumpCount = 0;
+
+            // khi restart level, tạo layout platform random
+            clearPlatforms();
+            initPlatforms();
 
             player.body.setLinearVelocity(0, 0);
             player.body.setAngularVelocity(0);
@@ -489,7 +511,24 @@ public abstract class BaseScreen implements Screen {
             camera.update();
 
             updateInputProcessors();
+            
+            // hiển thị lại attempt count khi reset game
+            if (gameplayUI != null) {
+                gameplayUI.showAttempt();
+            }
         });
+    }
+
+    protected void clearPlatforms() {
+        if (platforms != null) {
+            for (Platform p : platforms) {
+                if (p.body != null) {
+                    world.destroyBody(p.body);
+                }
+            }
+            platforms.clear();
+        }
+        groundPlatform = null;
     }
 
     // -------------------------------------------------------
@@ -497,6 +536,7 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void goToMenu() {
         jumpCount=0;
+        game.attemptCount = 0; // khi về menu, attempt count reset về 0
         Gdx.app.postRunnable(() -> {
             AudioManager.getInstance().playMenuMusic();
             game.setScreen(new MainScreen(game));

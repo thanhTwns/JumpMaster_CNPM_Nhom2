@@ -14,6 +14,7 @@ public class JumpMasterGame extends Game {
 
     // private SpriteBatch batch;
     public SpriteBatch batch;
+    public int attemptCount = 0;
 
     @Override
     public void create() {
