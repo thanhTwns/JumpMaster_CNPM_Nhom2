@@ -20,6 +20,7 @@ public class GameplayUI {
     private Label scoreLabel;
     private Label comboLabel;
     private Label columnLabel;
+    private Label jumpLabel;
     private Label fpsLabel; // Khai báo fpsLabel ở đây
     private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
@@ -41,6 +42,9 @@ public class GameplayUI {
         comboLabel = new Label("", labelStyle);
         comboLabel.setColor(Color.YELLOW);
 
+        jumpLabel = new Label("", labelStyle);
+        jumpLabel.setColor(Color.WHITE);
+
         // Khởi tạo fpsLabel 1 lần duy nhất
         fpsLabel = new Label("0 FPS", labelStyle);
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
@@ -52,6 +56,7 @@ public class GameplayUI {
         topTable.add(scoreLabel).pad(15).left().row();
         topTable.add(columnLabel).pad(15).left().row();
         topTable.add(comboLabel).pad(15).left().row();
+        topTable.add(jumpLabel).padTop(-35).padLeft(15).left().row();
         topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
 
         // Bảng chứa nút Pause ở góc phải
@@ -79,7 +84,7 @@ public class GameplayUI {
         stage.addActor(actionTable);
     }
 
-    public void update(ScoreManager sm) {
+    public void update(ScoreManager sm, BaseScreen screen) {
         this.scoreManager = sm;
 
         // Cập nhật text liên tục ở đây
@@ -91,7 +96,15 @@ public class GameplayUI {
         } else {
             comboLabel.setText("");
         }
+        if ("challenge".equals(screen.getMode())) {
+            int remaining = BaseScreen.MAX_CHALLENGE_JUMPS
+                - screen.getJumpCount();
 
+            jumpLabel.setText("Jumps Left: " + remaining);
+            jumpLabel.setVisible(true);
+        } else {
+            jumpLabel.setVisible(false);
+        }
         // Ẩn/hiện FPS tùy thuộc vào cài đặt
         fpsLabel.setVisible(GameSettings.getInstance().showFPS);
     }
