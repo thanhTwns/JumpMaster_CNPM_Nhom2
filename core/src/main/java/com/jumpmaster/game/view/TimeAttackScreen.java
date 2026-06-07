@@ -393,34 +393,11 @@ public class TimeAttackScreen extends BaseScreen {
     // ──────────────────────────────────────────────────────────────────────
 
     private void advanceToNextLevel(int completedLevel) {
-        int next = completedLevel + 1;
-        Gdx.app.log("TimeAttackScreen", "Level " + completedLevel + " → " + next);
-
-        // Xây lại platforms
-        // Xoá platforms cũ (giữ ground)
-        platforms.clear();
-        buildStepPlatforms(PLATFORM_COUNT, GAP_MIN, GAP_MAX);
-
-        // Reset player về spawn
-        player.body.setTransform(
-            getSpawnX() / Constants.PPM,
-            getSpawnY() / Constants.PPM, 0);
-        player.body.setLinearVelocity(0, 0);
-
-        taLogic.onNewLevel(platforms, topPlatformY);
-        taLogic.initLevel(next);
-
-        levelTransitionPending = false;
+        Gdx.app.postRunnable(() -> {
+            scoreManager.flush();
+            game.setScreen(new WinScreen(game, "timeattack"));
+        });
     }
-
-    // ──────────────────────────────────────────────────────────────────────
-    //  Platform builder (tách riêng để dùng lại khi chuyển level)
-    // ──────────────────────────────────────────────────────────────────────
-
-    /**
-     * Xây ground + step platforms.
-     * Kết quả lưu vào this.platforms và cập nhật this.topPlatformY.
-     */
     private void buildStepPlatforms(int count, float minGap, float maxGap) {
         float groundHeight = 48f;
         float groundWidth  = Constants.VIEWPORT_WIDTH + 200f;
@@ -501,5 +478,31 @@ public class TimeAttackScreen extends BaseScreen {
             multiplexer.addProcessor(1, taUI.getStage());   // index 1: sau mapViewAdapter
         }
         Gdx.input.setInputProcessor(multiplexer);
+    }
+    // TimeAttackScreen.java — thêm override restartGame()
+    @Override
+    protected void restartGame() {
+        Gdx.app.postRunnable(() -> {
+            levelTransitionPending = false;
+
+            for (Platform p : platforms) {
+                if (p != null && p.body != null) {
+                    world.destroyBody(p.body);
+                }
+            }
+            platforms.clear();
+            visitedPlatforms.clear();
+
+            buildStepPlatforms(PLATFORM_COUNT, GAP_MIN, GAP_MAX);
+
+            if (taLogic != null) {
+                taLogic.onNewLevel(platforms, topPlatformY);
+                taLogic.initLevel(1);
+            }
+
+            batStateTime = 0f;
+        });
+
+        super.restartGame();
     }
 }

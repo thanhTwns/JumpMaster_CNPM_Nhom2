@@ -122,6 +122,7 @@ public class TimeAttackLogic implements Disposable {
     public void initLevel(int level) {
         Gdx.app.log("TALogic", "initLevel called, level=" + level);
         this.currentLevel = level;
+        playerHealth = PLAYER_MAX_HEALTH;
         bats.clear();
         potions.clear();
         // FIX: destroy Box2D bodies trước khi clear để tránh memory leak
@@ -136,7 +137,6 @@ public class TimeAttackLogic implements Disposable {
         int stepCount = platforms.size - 1;
         if (stepCount < 1) return;
 
-        // Vortex trên platform cao nhất
         Platform topPlatform = platforms.get(platforms.size - 1);
         float topPlatformSurfacePx =
             (topPlatform.getY() + topPlatform.getHeight() / 2f) * Constants.PPM;
