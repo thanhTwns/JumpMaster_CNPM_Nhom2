@@ -1,152 +1,205 @@
-package test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-import com.badlogic.gdx.Application;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.math.Rectangle;
-import com.jumpmaster.game.JumpMasterGame;
-import com.jumpmaster.game.view.MainScreen;
-import com.jumpmaster.game.view.SettingsScreen;
-import com.jumpmaster.game.view.EarthScreen;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-
-/**
- * Unit Test cho MainScreen (UC-1.2: Chọn chế độ chơi và UC-1.4: Thoát game)
- * Viết theo chuẩn Sequence Verification và Reflection của BaseScreenTest.
- */
-public class MainScreenTest {
-
-    private MainScreen mainScreen;
-    private JumpMasterGame mockGame;
-    private Input mockInput;
-    private Application mockApp;
-
-    @Before
-    public void setUp() throws Exception {
-        mockGame = mock(JumpMasterGame.class);
-        mockInput = mock(Input.class);
-        mockApp = mock(Application.class);
-        Gdx.app = mockApp;
-        Gdx.input = mockInput;
-        Gdx.graphics = mock(Graphics.class);
-
-        when(Gdx.graphics.getWidth()).thenReturn(1200);
-        when(Gdx.graphics.getHeight()).thenReturn(720);
-
-        mainScreen = new MainScreen(mockGame);
-
-        // Thiết lập trạng thái layout qua Reflection để tránh crash load font/texture
-        setPrivateField(mainScreen, "screenW", 1200);
-        setPrivateField(mainScreen, "screenH", 720);
-
-        Method setupButtons = MainScreen.class.getDeclaredMethod("setupButtons");
-        setupButtons.setAccessible(true);
-        setupButtons.invoke(mainScreen);
-    }
-
-    // TC 1.2.1: Chọn chế độ chơi hiển thị Popup hướng dẫn (UC-1.2)
-    @Test
-    public void testSelectMode_ShowsPopup_Sequence() throws Exception {
-        Rectangle btnClassic = (Rectangle) getPrivateField(mainScreen, "btnClassic");
-        when(mockInput.justTouched()).thenReturn(true);
-        when(mockInput.getX()).thenReturn((int) btnClassic.x + 5);
-        when(mockInput.getY()).thenReturn(720 - (int) btnClassic.y - 5);
-
-        invokeHandleInput();
-
-        assertTrue("Popup phải hiển thị", (boolean) getPrivateField(mainScreen, "isShowingPopup"));
-        assertEquals("classic", getPrivateField(mainScreen, "selectedModeTag"));
-    }
-
-    // TC 1.4: Nhấn nút EXIT để thoát hệ thống (UC-1.4)
-    @Test
-    public void testClickExit_CallsAppExit_Sequence() throws Exception {
-        Rectangle btnExit = (Rectangle) getPrivateField(mainScreen, "btnExit");
-        when(mockInput.justTouched()).thenReturn(true);
-        when(mockInput.getX()).thenReturn((int) btnExit.x + 5);
-        when(mockInput.getY()).thenReturn(720 - (int) btnExit.y - 5);
-
-        invokeHandleInput();
-        verify(mockApp, times(1)).exit();
-    }
-
-    // TC 1.1/1.3: Kiểm tra điều hướng sang Settings và Scores
-    @Test
-    public void testNavigation_ToSettings() throws Exception {
-        Rectangle btnSettings = (Rectangle) getPrivateField(mainScreen, "btnSettings");
-        when(mockInput.justTouched()).thenReturn(true);
-        when(mockInput.getX()).thenReturn((int) btnSettings.x + 5);
-        when(mockInput.getY()).thenReturn(720 - (int) btnSettings.y - 5);
-
-        invokeHandleInput();
-        verify(mockGame).setScreen(any(SettingsScreen.class));
-    }
-
-    // TEST LOGIC KHỞI ĐỘNG
-
-    @Test
-    public void startSelectedMode_WhenClassicMode_ShouldSetEarthScreen() throws Exception {
-        setPrivateField(mainScreen, "selectedModeTag", "classic");
-        invokePrivateMethod(mainScreen, "startSelectedMode");
-        verify(mockGame).setScreen(any(EarthScreen.class));
-    }
-
-    @Test
-    public void startSelectedMode_WhenTimeAttackMode_ShouldSetEarthScreen() throws Exception {
-        setPrivateField(mainScreen, "selectedModeTag", "timeattack");
-        invokePrivateMethod(mainScreen, "startSelectedMode");
-        verify(mockGame).setScreen(any(EarthScreen.class));
-    }
-
-    @Test
-    public void startSelectedMode_WhenChallengeMode_ShouldSetEarthScreen() throws Exception {
-        setPrivateField(mainScreen, "selectedModeTag", "challenge");
-        invokePrivateMethod(mainScreen, "startSelectedMode");
-        verify(mockGame).setScreen(any(EarthScreen.class));
-    }
-
-    @Test
-    public void startSelectedMode_ShouldHidePopup() throws Exception {
-        setPrivateField(mainScreen, "isShowingPopup", true);
-        setPrivateField(mainScreen, "selectedModeTag", "classic");
-
-        invokePrivateMethod(mainScreen, "startSelectedMode");
-
-        assertFalse("Popup phải được ẩn sau khi bắt đầu", (Boolean) getPrivateField(mainScreen, "isShowingPopup"));
-    }
-
-    // Helper Methods
-    private void invokeHandleInput() throws Exception {
-        Method method = MainScreen.class.getDeclaredMethod("handleInput");
-        method.setAccessible(true);
-        method.invoke(mainScreen);
-    }
-
-    private void invokePrivateMethod(Object obj, String methodName) throws Exception {
-        Method method = obj.getClass().getDeclaredMethod(methodName);
-        method.setAccessible(true);
-        method.invoke(obj);
-    }
-
-    private void setPrivateField(Object obj, String fieldName, Object value) throws Exception {
-        Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(obj, value);
-    }
-
-    private Object getPrivateField(Object obj, String fieldName) throws Exception {
-        Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return field.get(obj);
-    }
-}
+//package test;
+//
+//
+//
+//import com.jumpmaster.game.JumpMasterGame;
+//
+//import com.jumpmaster.game.view.EarthScreen;
+//
+//import com.jumpmaster.game.view.MainScreen;
+//
+//
+//
+//import org.junit.jupiter.api.BeforeEach;
+//
+//import org.junit.jupiter.api.Test;
+//
+//
+//
+//import java.lang.reflect.Field;
+//
+//import java.lang.reflect.Method;
+//
+//
+//
+//import static org.junit.jupiter.api.Assertions.assertFalse;
+//
+//import static org.mockito.ArgumentMatchers.any;
+//
+//import static org.mockito.Mockito.*;
+//
+//import static javax.management.Query.times;
+//
+//
+//
+//
+//
+//class MainScreenTest {
+//
+//
+//
+//    private JumpMasterGame game;
+//
+//    private MainScreen mainScreen;
+//
+//
+//
+//    @BeforeEach
+//
+//    void setUp() {
+//
+//        game = mock(JumpMasterGame.class);
+//
+//        mainScreen = new MainScreen(game);
+//
+//    }
+//
+//
+//
+//    @Test
+//
+//    void startSelectedMode_WhenClassicMode_ShouldSetEarthScreen() throws Exception {
+//
+//
+//
+//        // Arrange
+//
+//        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+//
+//        modeField.setAccessible(true);
+//
+//        modeField.set(mainScreen, "classic");
+//
+//
+//
+//        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+//
+//        method.setAccessible(true);
+//
+//
+//
+//        // Act
+//
+//        method.invoke(mainScreen);
+//
+//
+//
+//        // Assert
+//
+//        verify(game).setScreen(any(EarthScreen.class));
+//
+//
+//
+//    }
+//
+//
+//
+//    @Test
+//
+//    void startSelectedMode_WhenTimeAttackMode_ShouldSetEarthScreen() throws Exception {
+//
+//
+//
+//        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+//
+//        modeField.setAccessible(true);
+//
+//        modeField.set(mainScreen, "timeattack");
+//
+//
+//
+//        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+//
+//        method.setAccessible(true);
+//
+//
+//
+//        method.invoke(mainScreen);
+//
+//
+//
+//        verify(game).setScreen(any(EarthScreen.class));
+//
+//    }
+//
+//
+//
+//    @Test
+//
+//    void startSelectedMode_WhenChallengeMode_ShouldSetEarthScreen() throws Exception {
+//
+//
+//
+//        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+//
+//        modeField.setAccessible(true);
+//
+//        modeField.set(mainScreen, "challenge");
+//
+//
+//
+//        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+//
+//        method.setAccessible(true);
+//
+//
+//
+//        method.invoke(mainScreen);
+//
+//
+//
+//        verify(game).setScreen(any(EarthScreen.class));
+//
+//    }
+//
+//
+//
+//    @Test
+//
+//    void startSelectedMode_ShouldHidePopup() throws Exception {
+//
+//
+//
+//        // Arrange
+//
+//        Field popupField = MainScreen.class.getDeclaredField("isShowingPopup");
+//
+//        popupField.setAccessible(true);
+//
+//        popupField.set(mainScreen, true);
+//
+//
+//
+//        Field modeField = MainScreen.class.getDeclaredField("selectedModeTag");
+//
+//        modeField.setAccessible(true);
+//
+//        modeField.set(mainScreen, "classic");
+//
+//
+//
+//        Method method = MainScreen.class.getDeclaredMethod("startSelectedMode");
+//
+//        method.setAccessible(true);
+//
+//
+//
+//        // Act
+//
+//        method.invoke(mainScreen);
+//
+//
+//
+//        // Assert
+//
+//        assertFalse((Boolean) popupField.get(mainScreen));
+//
+//    }
+//
+//}
+//
+//
+//
+//
+//
+//

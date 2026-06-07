@@ -16,7 +16,16 @@ public class Platform {
     public float height;
     private float widthMeters;
     private float heightMeters;
+    public float getX()      { return body.getPosition().x; }
 
+    /** Tâm Y — metres */
+    public float getY()      { return body.getPosition().y; }
+
+    /** Chiều rộng — metres */
+    public float getWidth()  { return widthMeters; }
+
+    /** Chiều cao — metres */
+    public float getHeight() { return heightMeters; }
     /**
      * @param world     Box2D world
      * @param x         vị trí tâm X (pixel)

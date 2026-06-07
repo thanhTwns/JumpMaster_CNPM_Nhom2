@@ -48,16 +48,16 @@ public class SpaceScreen extends BaseScreen {
     private static final float SCORE_STEP           = 100f;
     private static final float INTERVAL_PER_STEP    = 0.3f;
     private static final float SPEED_PER_STEP       = 0.2f;
-    private final String mode;
-
-    public SpaceScreen(JumpMasterGame game, String mode) {
+    private float   topPlatformY           = 0f;
+    public SpaceScreen(JumpMasterGame game) {
         super(game);
-        this.mode = mode;
     }
 
     // -------------------------------------------------------
     // INIT BACKGROUND — space + planet
     // -------------------------------------------------------
+    @Override
+    protected float getTopPlatformY() { return topPlatformY; }
     @Override
     protected void initBackground() {
         bgSpace = new Texture("space.png");

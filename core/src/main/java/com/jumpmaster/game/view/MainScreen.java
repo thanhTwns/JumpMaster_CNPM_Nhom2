@@ -441,11 +441,6 @@ public class MainScreen implements Screen {
         }
     }
 
-    private void startSelectedMode() {
-        isShowingPopup = false;
-        game.setScreen(new EarthScreen(game, selectedModeTag));
-    }
-
     @Override public void pause()  {}
     @Override public void resume() {}
     @Override public void hide()   {}
@@ -460,5 +455,53 @@ public class MainScreen implements Screen {
         iconSettings.dispose();
         iconTrophy.dispose();
         chickenTex.dispose();
+    }
+
+    void showClassicPopup() {
+        popupText = DESC_CLASSIC;
+        selectedModeTag = "classic";
+        isShowingPopup = true;
+    }
+
+    void showTimeAttackPopup() {
+        popupText = DESC_TIME_ATTACK;
+        selectedModeTag = "timeattack";
+        isShowingPopup = true;
+    }
+
+    void showChallengePopup() {
+        popupText = DESC_CHALLENGE;
+        selectedModeTag = "challenge";
+        isShowingPopup = true;
+    }
+
+    void closePopup() {
+        isShowingPopup = false;
+    }
+
+    void startSelectedMode() {
+
+        isShowingPopup = false;
+
+        if ("classic".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "classic"));
+        }
+        else if ("timeattack".equals(selectedModeTag)) {
+            game.setScreen(new TimeAttackScreen(game));
+        }
+        else if ("challenge".equals(selectedModeTag)) {
+            game.setScreen(new EarthScreen(game, "challenge"));
+        }
+    }
+    boolean isShowingPopup() {
+        return isShowingPopup;
+    }
+
+    String getPopupText() {
+        return popupText;
+    }
+
+    String getSelectedModeTag() {
+        return selectedModeTag;
     }
 }

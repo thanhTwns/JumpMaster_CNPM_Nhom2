@@ -24,7 +24,12 @@ public class GameplayUI {
     private Label fpsLabel; // Khai báo fpsLabel ở đây
     private BitmapFont font; // Đưa font lên đây để dùng chung
     private ScoreManager scoreManager;
-
+    private Label levelLabel;
+    private int currentLevel = 1;
+    private boolean showHealth = true;
+    public void setShowHealth(boolean show) {
+        this.showHealth = show;
+    }
     public interface GameplayListener {
         void onPause();
     }
@@ -53,22 +58,19 @@ public class GameplayUI {
         Table topTable = new Table();
         topTable.top().left();
         topTable.setFillParent(true);
-        topTable.add(scoreLabel).pad(15).left().row();
-        topTable.add(columnLabel).pad(15).left().row();
-        topTable.add(comboLabel).pad(15).left().row();
-        topTable.add(jumpLabel).padTop(-35).padLeft(15).left().row();
-        topTable.add(fpsLabel).pad(15).left(); // Nhét fpsLabel vào góc trái dưới combo
+        topTable.add(scoreLabel).padTop(30).padLeft(15).left().row();  // padTop(30) đẩy xuống
+        topTable.add(columnLabel).padTop(4).padLeft(15).left().row();  // padTop(4) gap nhỏ lại
+        topTable.add(comboLabel).padTop(4).padLeft(15).left().row();   // tương tự
+        topTable.add(jumpLabel).padTop(4).padLeft(15).left().row();
+        topTable.add(fpsLabel).pad(15).left();
 
-        // Bảng chứa nút Pause ở góc phải
-        Table actionTable = new Table();
-        actionTable.top().right();
-        actionTable.setFillParent(true);
 
+        levelLabel = new Label("LEVEL " + currentLevel, labelStyle);
+        levelLabel.setColor(Color.YELLOW);
         TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
         style.font = font;
         style.fontColor = Color.WHITE;
         style.overFontColor = Color.YELLOW;
-
         TextButton pauseButton = new TextButton("|| PAUSE", style);
         pauseButton.addListener(new ClickListener() {
             @Override
@@ -76,12 +78,20 @@ public class GameplayUI {
                 listener.onPause();
             }
         });
-
-        actionTable.add(pauseButton).pad(15);
+        // Bảng chứa nút Pause ở góc phải
+        Table actionTable = new Table();
+        actionTable.top().right();          // ← căn góc phải trên
+        actionTable.setFillParent(true);
+        actionTable.add(levelLabel).padTop(15).padRight(15).right().row();   // LEVEL 1
+        actionTable.add(pauseButton).padTop(4).padRight(15).right().row();   // || PAUSE
 
         // Chỉ add lên stage 1 lần
         stage.addActor(topTable);
         stage.addActor(actionTable);
+    }
+    public void setLevel(int level) {
+        this.currentLevel = level;
+        if (levelLabel != null) levelLabel.setText("LEVEL " + level);
     }
 
     public void update(ScoreManager sm, BaseScreen screen) {

@@ -2,12 +2,14 @@ package com.jumpmaster.game.view;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
@@ -21,6 +23,12 @@ import com.jumpmaster.game.model.Platform;
 import com.jumpmaster.game.model.Player;
 import com.jumpmaster.game.utils.Constants;
 import com.jumpmaster.game.utils.ScoreManager;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.MathUtils;
+import com.jumpmaster.game.GameSettings;
 
 /**
  * BaseScreen — abstract class chứa toàn bộ logic CHUNG giữa GameScreen và
@@ -68,6 +76,8 @@ public abstract class BaseScreen implements Screen {
     protected Platform rightWall;
 
     protected OrthographicCamera camera;
+    protected OrthographicCamera bgCam;
+    private OrthographicCamera mapCam;
     protected World world;
     protected ShapeRenderer shapeRenderer;
     protected InputHandler inputHandler;
@@ -100,6 +110,28 @@ public abstract class BaseScreen implements Screen {
     public ScoreManager scoreManager;
 
     protected static final float DEATH_Y = -0.5f;
+    protected boolean isMapView   = false;
+    private   float   mapCamX     = 0f;
+    private   float   mapCamY     = 0f;
+    private   float   savedCamX   = 0f;
+    private   float   savedCamY   = 0f;
+    private   boolean mapDragging = false;
+    private   float   dragStartX  = 0f;
+    private   float   dragStartY  = 0f;
+    private   float   camAtDragX  = 0f;
+    private   float   camAtDragY  = 0f;
+    // Nút Map View — toạ độ screen pixels (gốc trên-trái)
+    private static final float BTN_W = 100f;
+    private static final float BTN_H = 32f;
+    private float getBtnX() { return Gdx.graphics.getWidth()  - BTN_W - 20f; }
+    private float getBtnY() { return 20f; }
+
+    private BitmapFont mapFont;    // font riêng cho overlay Map View
+    private InputAdapter mapViewInputAdapter;
+    private boolean isPausedByMapView = false;
+
+    // topPlatformY phải được lớp con cung cấp (pixels)
+    protected abstract float getTopPlatformY();
 
     public static final int MAX_CHALLENGE_JUMPS = 50;
     protected int jumpCount = 0;
@@ -161,6 +193,7 @@ public abstract class BaseScreen implements Screen {
      */
     protected void onExtraDispose() {
     }
+    protected void onWinContact(Platform platform) {}
 
     /**
      * X spawn của player (pixel)
@@ -186,7 +219,13 @@ public abstract class BaseScreen implements Screen {
             Constants.VIEWPORT_HEIGHT / Constants.PPM,
             camera);
         world = new World(new Vector2(0, Constants.GRAVITY), true);
-
+        mapFont = new BitmapFont();
+        mapCam = new OrthographicCamera(
+            Constants.VIEWPORT_WIDTH  / Constants.PPM,
+            Constants.VIEWPORT_HEIGHT / Constants.PPM);
+        bgCam = new OrthographicCamera(Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT);
+        bgCam.position.set(Constants.VIEWPORT_WIDTH / 2f, Constants.VIEWPORT_HEIGHT / 2f, 0);
+        bgCam.update();
         // Background do lớp con quyết định
         initBackground();
 
@@ -202,6 +241,7 @@ public abstract class BaseScreen implements Screen {
 
         // Player
         player = new Player(world, getSpawnX(), getSpawnY());
+        syncBgCam();
         camera.position.y = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
         camera.update();
         smoothCamY = camera.position.y;
@@ -224,8 +264,8 @@ public abstract class BaseScreen implements Screen {
 
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-                if (isPaused || currentState == State.GAME_OVER)
-                    return false;
+                if (isMapView || isPaused || currentState == State.GAME_OVER) return false;
+                if (isTapOnMapButton(screenX, screenY)) { enterMapView(); return true; }
                 return super.touchDown(screenX, screenY, pointer, button);
             }
 
@@ -234,6 +274,66 @@ public abstract class BaseScreen implements Screen {
                 if (isPaused || currentState == State.GAME_OVER)
                     return false;
                 return super.touchUp(screenX, screenY, pointer, button);
+            }
+        };
+        mapViewInputAdapter = new InputAdapter() {
+            @Override
+            public boolean touchDown(int sx, int sy, int p, int b) {
+                if (isTapOnMapButton(sx, sy)) {
+                    if (isMapView) exitMapView(); else enterMapView();
+                    return true;
+                }
+                if (isMapView && b == Input.Buttons.LEFT) {
+                    mapDragging = true;
+                    dragStartX = sx; dragStartY = sy;
+                    camAtDragX = mapCamX; camAtDragY = mapCamY;
+                    return true;
+                }
+                return false;
+            }
+            @Override
+            public boolean touchDragged(int sx, int sy, int p) {
+                if (isMapView && mapDragging) {
+                    float scaleX = (Constants.VIEWPORT_WIDTH  / Constants.PPM)
+                        / (float) Gdx.graphics.getWidth();
+                    float scaleY = (Constants.VIEWPORT_HEIGHT / Constants.PPM)
+                        / (float) Gdx.graphics.getHeight();
+                    mapCamX = camAtDragX - (sx - dragStartX) * scaleX;
+                    mapCamY = camAtDragY + (sy - dragStartY) * scaleY;
+                    clampMapCamera();
+                    applyMapCamera();
+                    return true;
+                }
+                return false;
+            }
+            @Override
+            public boolean touchUp(int sx, int sy, int p, int b) {
+                if (isMapView) { mapDragging = false; return true; }
+                return false;
+            }
+            @Override
+            public boolean scrolled(float ax, float ay) {
+                if (isMapView) {
+                    mapCamY += ay * (120f / Constants.PPM);
+                    clampMapCamera();
+                    applyMapCamera();
+                    return true;
+                }
+                return false;
+            }
+            @Override
+            public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.M || keycode == Input.Keys.TAB) {
+                    if (isMapView) exitMapView(); else enterMapView();
+                    return true;
+                }
+                if (keycode == Input.Keys.ESCAPE || keycode == Input.Keys.BACK) {
+                    if (isMapView) { exitMapView(); return true; }
+                    isPaused = !isPaused;
+                    updateInputProcessors();
+                    return true;
+                }
+                return false;
             }
         };
 
@@ -303,11 +403,7 @@ public abstract class BaseScreen implements Screen {
 
             // Logic bổ sung của lớp con (monster, v.v.)
             onExtraUpdate(delta);
-
-            // Camera follow player
-            float targetCamY = Math.max(py, (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f);
-            camera.position.y += (targetCamY - camera.position.y) * 0.1f;
-            smoothCamY += (camera.position.y - smoothCamY) * 0.02f;
+            updateCamera();
         }
 
         viewport.apply();
@@ -318,13 +414,15 @@ public abstract class BaseScreen implements Screen {
         drawBackground();
 
         // Platforms + Player
-        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.setProjectionMatrix(
+            isMapView ? mapCam.combined : camera.combined);
         game.batch.begin();
         for (Platform p : platforms)
             p.draw(game.batch);
         player.draw(game.batch);
         onExtraDraw(); // vẽ bổ sung của lớp con (monster, v.v.)
         game.batch.end();
+        if (isMapView) drawMapViewOverlay();
 
         // aim & dự đoán đường đi
         if (!isPaused && currentState != State.GAME_OVER && inputHandler.isDragging) {
@@ -390,11 +488,12 @@ public abstract class BaseScreen implements Screen {
                 gameOverOverlay.render();
             }
 
-        } else if (isPaused) pauseOverlay.render();
+        } else if (isPaused && !isPausedByMapView) pauseOverlay.render();
         else {
             gameplayUI.update(scoreManager, this);
             gameplayUI.render();
         }
+        drawMapViewButton();
     }
 
     // -------------------------------------------------------
@@ -405,7 +504,8 @@ public abstract class BaseScreen implements Screen {
         if (platform == null || platform == groundPlatform || visitedPlatforms.contains(platform)) {
             return;
         }
-
+        onWinContact(platform);
+        if (visitedPlatforms.contains(platform)) return;
         visitedPlatforms.add(platform);
         scoreManager.incrementColumns();
 
@@ -422,7 +522,146 @@ public abstract class BaseScreen implements Screen {
         int finalPoints = (int) (basePoint * comboMultiplier);
         scoreManager.addPoints(finalPoints);
     }
+    private void updateCamera() {
+        float py      = player.body.getPosition().y;
+        float halfVpH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+        camera.position.y += (Math.max(py, halfVpH) - camera.position.y) * 0.1f;
+        smoothCamY        += (camera.position.y - smoothCamY) * 0.02f;
+        camera.update();
+        if (!isMapView) syncBgCam();
+    }
 
+    protected void syncBgCam() {
+        bgCam.position.x = camera.position.x * Constants.PPM;
+        bgCam.position.y = camera.position.y * Constants.PPM;
+        bgCam.update();
+    }
+
+    private void enterMapView() {
+        if (isMapView) return;
+        isMapView = true;
+        mapCam.position.set(camera.position);
+        mapCam.update();
+        mapCamX = savedCamX; mapCamY = savedCamY;
+        mapDragging = false;
+        updateInputProcessors();
+    }
+
+    private void exitMapView() {
+        if (!isMapView) return;
+        isMapView = false;
+
+        // Restore camera về đúng vị trí player, không dùng savedCam
+        float px = player.body.getPosition().x;
+        float py = player.body.getPosition().y;
+        float halfVpH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+
+        camera.position.x = (Constants.VIEWPORT_WIDTH / Constants.PPM) / 2f; // X cố định giữa màn
+        camera.position.y = Math.max(py, halfVpH);
+        camera.update();
+
+        updateInputProcessors();
+    }
+
+    private void applyMapCamera() {
+        mapCam.position.x = mapCamX;
+        mapCam.position.y = mapCamY;
+        mapCam.update();
+    }
+
+    private void clampMapCamera() {
+        float halfW = (Constants.VIEWPORT_WIDTH  / Constants.PPM) / 2f;
+        float halfH = (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f;
+        mapCamX = MathUtils.clamp(mapCamX, halfW,
+            Constants.VIEWPORT_WIDTH / Constants.PPM - halfW);
+        mapCamY = MathUtils.clamp(mapCamY, halfH,
+            getTopPlatformY() / Constants.PPM + halfH);
+    }
+
+    private void drawMapViewOverlay() {
+        float sw = Gdx.graphics.getWidth(), sh = Gdx.graphics.getHeight();
+        Matrix4 ortho = new Matrix4().setToOrtho2D(0, 0, sw, sh);
+
+        shapeRenderer.setProjectionMatrix(ortho);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0f, 0.5f, 1f, 0.18f);
+        shapeRenderer.rect(0, sh - 48f, sw, 48f);
+        shapeRenderer.rect(0, 0, sw, 48f);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(0f, 0.6f, 1f, 0.7f);
+        shapeRenderer.rect(2, 2, sw - 4, sh - 4);
+        shapeRenderer.end();
+
+        int pct = (int)(MathUtils.clamp(
+            (mapCam.position.y - (Constants.VIEWPORT_HEIGHT / Constants.PPM) / 2f)
+                / Math.max(getTopPlatformY() / Constants.PPM, 1f),
+            0f, 1f) * 100f);
+        game.batch.setProjectionMatrix(ortho);
+        game.batch.begin();
+        mapFont.setColor(1f, 1f, 1f, 0.9f);
+        mapFont.draw(game.batch,
+            "",
+            getBtnX() + BTN_W + 16f, sh - getBtnY() - 8f);
+        game.batch.end();
+
+        drawPlayerIndicator(ortho, sw, sh);
+    }
+
+    private void drawPlayerIndicator(Matrix4 ortho, float sw, float sh) {
+        float px = player.body.getPosition().x;   // metres
+        float py = player.body.getPosition().y;
+        float sx = sw / 2f + (px - mapCam.position.x)
+            * (sw / (Constants.VIEWPORT_WIDTH  / Constants.PPM));
+        float sy = sh / 2f + (py - mapCam.position.y)
+            * (sh / (Constants.VIEWPORT_HEIGHT / Constants.PPM));
+        float margin = 24f;
+        float cx = MathUtils.clamp(sx, margin, sw - margin);
+        float cy = MathUtils.clamp(sy, margin, sh - margin);
+
+        shapeRenderer.setProjectionMatrix(ortho);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(1f, 1f, 0f, 1f);
+        shapeRenderer.triangle(cx, cy + 10f, cx - 7f, cy - 5f, cx + 7f, cy - 5f);
+        shapeRenderer.end();
+    }
+
+    private void drawMapViewButton() {
+        float sw = Gdx.graphics.getWidth(), sh = Gdx.graphics.getHeight();
+        float BTN_X = getBtnX();
+        float btnY = getBtnY();
+        Matrix4 ortho = new Matrix4().setToOrtho2D(0, 0, sw, sh);
+
+        shapeRenderer.setProjectionMatrix(ortho);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(isMapView ? new Color(0.1f,0.5f,1f,0.92f)
+            : new Color(0f,0f,0f,0.65f));
+        shapeRenderer.rect(BTN_X, btnY, BTN_W, BTN_H);
+        shapeRenderer.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(isMapView ? Color.CYAN : Color.WHITE);
+        shapeRenderer.rect(BTN_X, btnY, BTN_W, BTN_H);
+        shapeRenderer.end();
+
+        String label = isMapView ? "< Back" : "Map View";
+        GlyphLayout gl = new GlyphLayout(mapFont, label);
+        game.batch.setProjectionMatrix(ortho);
+        game.batch.begin();
+        mapFont.setColor(Color.WHITE);
+        mapFont.draw(game.batch, label,
+            BTN_X + (BTN_W - gl.width) / 2f,
+            btnY  + (BTN_H + gl.height) / 2f);
+        game.batch.end();
+    }
+
+    private boolean isTapOnMapButton(int sx, int sy) {
+        float btnX = getBtnX();
+        float btnY = Gdx.graphics.getHeight() - getBtnY() - BTN_H; // flip Y vì touch dùng top-left origin
+        return sx >= btnX && sx <= btnX + BTN_W
+            && sy >= btnY && sy <= btnY + BTN_H;
+    }
     // -------------------------------------------------------
     // TRIGGER GAME OVER
     // -------------------------------------------------------
@@ -430,6 +669,7 @@ public abstract class BaseScreen implements Screen {
         if (currentState == State.GAME_OVER)
             return;
         currentState = State.GAME_OVER;
+        if (isMapView) exitMapView();
         updateInputProcessors();
 
         // ── 3.2.1.2 stopPhysics ─────────────────────────────────────────
@@ -464,6 +704,7 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void restartGame() {
         Gdx.app.postRunnable(() -> {
+            isMapView = false;
             // ── 3.2.1.6a restartGame ────────────────────────────────────
             currentState   = State.RUNNING;
             isPaused       = false;
@@ -508,6 +749,8 @@ public abstract class BaseScreen implements Screen {
     // -------------------------------------------------------
     protected void updateInputProcessors() {
         multiplexer.clear();
+        if (mapViewInputAdapter != null)
+            multiplexer.addProcessor(mapViewInputAdapter);
         if (currentState == State.GAME_OVER)
             multiplexer.addProcessor(gameOverOverlay.stage);
         else if (isPaused)
@@ -531,6 +774,8 @@ public abstract class BaseScreen implements Screen {
             pauseOverlay.resize(width, height);
         if (gameOverOverlay != null)
             gameOverOverlay.resize(width, height);
+        if (bgCam != null)
+            bgCam.setToOrtho(false, Constants.VIEWPORT_WIDTH, Constants.VIEWPORT_HEIGHT);
     }
 
     @Override
@@ -565,6 +810,7 @@ public abstract class BaseScreen implements Screen {
             pauseOverlay.dispose();
         if (gameOverOverlay != null)
             gameOverOverlay.dispose();
+        if (mapFont != null) mapFont.dispose();
         onExtraDispose();
     }
     public JumpMasterGame getGame() {
@@ -580,5 +826,8 @@ public abstract class BaseScreen implements Screen {
 
     public int getJumpCount() {
         return jumpCount;
+    }
+    protected OrthographicCamera getActiveCamera() {
+        return isMapView ? mapCam : camera;
     }
 }
