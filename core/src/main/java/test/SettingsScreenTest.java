@@ -14,6 +14,7 @@ import com.jumpmaster.game.view.SettingsScreen;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.HashMap;
 import java.util.Map;

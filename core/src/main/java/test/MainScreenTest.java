@@ -15,6 +15,7 @@ import com.jumpmaster.game.view.EarthScreen;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

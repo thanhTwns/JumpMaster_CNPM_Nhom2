@@ -330,7 +330,7 @@ public abstract class BaseScreen implements Screen {
         if (!isPaused && currentState != State.GAME_OVER && inputHandler.isDragging) {
             shapeRenderer.setProjectionMatrix(camera.combined);
 
-            // aim bar
+            // aim bar (đường màu đỏ - hiển thị hướng kéo tay về phía sau nhân vật)
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
             shapeRenderer.setColor(Color.RED);
             float pX = player.body.getPosition().x;
